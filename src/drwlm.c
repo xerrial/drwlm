@@ -3,13 +3,14 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <string.h>
+#include <assert.h>
 
 #include <pthread.h>
 
 #include <corosync/cpg.h>
 #include <corosync/corotypes.h>
 
-#define DRWLM_CPG_NAME "drwlm_cpg"
+#define DRWLM_CPG_NAME "drwlm_lockspace"
 
 typedef enum
 {
@@ -42,6 +43,25 @@ bool modes_compatible(rwlock_mode_t current, rwlock_mode_t desired)
 typedef unsigned char node_id_t;
 typedef unsigned int  xa_id_t;
 
+node_id_t own_id()
+{
+    static_assert(0, "Not implemented");
+}
+
+size_t nodes_count()
+{
+    static_assert(0, "Not implemented");
+}
+
+typedef enum {
+    REQUEST = 0,
+    RESPONSE
+} message_type_t;
+
+typedef struct {
+    message_type_t type;
+} message_header_t;
+
 typedef enum {
     GRANTED = 0,
     DENIED
@@ -49,17 +69,19 @@ typedef enum {
 
 typedef struct
 {
-    node_id_t     from;
-    xa_id_t       xid;
-    rwlock_mode_t mode;
+    message_header_t header;
+    node_id_t        from;
+    xa_id_t          xid;
+    rwlock_mode_t    mode;
 } request_t;
 
 typedef struct
 {
-    node_id_t to;
-    node_id_t from;
-    xa_id_t   xid;
-    reply_t   reply;
+    message_header_t header;
+    node_id_t        to;
+    node_id_t        from;
+    xa_id_t          xid;
+    reply_t          reply;
 } response_t;
 
 typedef struct
@@ -71,14 +93,78 @@ typedef struct
     unsigned      granted_count;
 } lock_t;
 
+static lock_t lock = {
+    .mode = NL,
+    .transitioning = false,
+    .desired_mode = NL,
+    .pending_xid = 0,
+    .granted_count = 0
+};
+
 void on_request(request_t *req)
 {
+    if (req->from == own_id())
+    {
+        lock.transitioning = true;
+        lock.desired_mode = req->mode;
+        lock.pending_xid = req->xid;
+        lock.granted_count = 1;
+    }
+    else
+    {
+        response_t resp = {
+            .header.type = RESPONSE,
+            .to = req->from,
+            .from = own_id(),
+            .xid = req->xid
+        };
+
+        if (modes_compatible(lock.mode, req->mode))
+        {
+            resp.reply = GRANTED;
+            // send granted response
+        }
+        else
+        {
+            resp.reply = DENIED;
+            // send denied response
+        }
+    }
+
     return;
 }
 
 void on_response(response_t *resp)
 {
-    return;
+    if (resp->to != own_id())
+        return;
+
+    if (resp->xid != lock.pending_xid)
+        return;
+
+    if (resp->reply == DENIED)
+    {
+        lock.transitioning = false;
+        lock.pending_xid   = 0;
+        lock.desired_mode  = NL;
+
+        return;
+    }
+    else if (resp->reply == GRANTED)
+    {
+        lock.granted_count++;
+
+        if (lock.granted_count == nodes_count())
+        {
+            lock.mode = lock.desired_mode;
+            lock.desired_mode = NL;
+            lock.pending_xid = 0;
+            lock.transitioning = false;
+            lock.granted_count = 0;
+        }
+
+        return;
+    }
 }
 
 static void *dispatch_thread(void *arg)
@@ -92,12 +178,12 @@ typedef struct cpg_name    cpg_name_t;
 typedef struct cpg_address cpg_address_t;
 typedef struct cpg_ring_id cpg_ring_id_t;
 
-void deliver_cb (cpg_handle_t      handle,
-                 const cpg_name_t *groupName,
-                 uint32_t          nodeid,
-                 uint32_t          pid,
-                 void             *msg,
-                 size_t            msg_len)
+void deliver_cb(cpg_handle_t      handle,
+                const cpg_name_t *groupName,
+                uint32_t          nodeid,
+                uint32_t          pid,
+                void             *msg,
+                size_t            msg_len)
 {
     printf("deliver_cb(): message (len=%zu) "
            "group '%.*s' "
@@ -107,6 +193,19 @@ void deliver_cb (cpg_handle_t      handle,
            groupName->length, groupName->value,
            nodeid, pid,
            msg_len, (const char *)msg);
+
+    switch (((message_header_t *)msg)->type)
+    {
+    case REQUEST:
+        on_request(msg);
+        break;
+    case RESPONSE:
+        on_response(msg);
+        break;
+    default:
+        fprintf(stderr, "Unexpected message type '%d'", ((message_header_t *)msg)->type);
+        break;
+    }
 }
 
 static void confchg_cb(cpg_handle_t         handle,
@@ -147,7 +246,7 @@ int main(void)
                                 NULL);
     if (csrv != CS_OK)
     {
-        fprintf(stderr, "Failed to inititalize cpg_model\n");
+        fprintf(stderr, "Failed to inititalize cpg_model: %s (%s)\n", cs_strerror(csrv), strerror(errno));
         return EXIT_FAILURE;
     }
 
@@ -163,6 +262,8 @@ int main(void)
         fprintf(stderr, "Failed to join cpg\n");
         goto exit;
     }
+
+    pthread_join(thread, NULL);
 
 exit:
     cpg_finalize(handle);
