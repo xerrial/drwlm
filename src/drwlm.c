@@ -12,48 +12,9 @@
 #include <corosync/cpg.h>
 #include <corosync/corotypes.h>
 
+#include "lock.h"
+
 #define DRWLM_CPG_NAME "drwlm_lockspace"
-
-typedef enum
-{
-    NL = 0,
-    RD,
-    IW,
-    WR,
-    RWLOCK_MODES_NUM
-} rwlock_mode_t;
-
-char *rwlock_mode_to_str(rwlock_mode_t mode)
-{
-    switch (mode)
-    {
-    case NL: return "NL";
-    case RD: return "RD";
-    case IW: return "IW";
-    case WR: return "WR";
-    default:
-        return "ERROR";
-    }
-}
-
-bool modes_compatible(rwlock_mode_t current, rwlock_mode_t desired)
-{
-    // TODO: можно небольшими изменениями в таблице реализовать
-    // Read-preferring или Write-preferring политики.
-
-    // Текущая таблица - Write-preferring.
-    static const bool compatibility_table[RWLOCK_MODES_NUM][RWLOCK_MODES_NUM] =
-    {
-        //  Desired:
-        //  NL     RD     IW     WR       Current:
-        { true,  true,  true,  true }, // NL
-        { true,  true,  true, false }, // RD
-        { true, false,  true,  true }, // IW
-        { true, false,  true, false }  // WR
-    };
-
-    return compatibility_table[current][desired];
-}
 
 int send_msg(cpg_handle_t handle, void *msg, size_t len)
 {
@@ -146,9 +107,9 @@ typedef struct
 } lock_t;
 
 static lock_t lock = {
-    .mode = NL,
+    .mode = RWLOCK_MODE_NL,
     .transitioning = false,
-    .desired_mode = NL,
+    .desired_mode = RWLOCK_MODE_NL,
     .pending_xid = 0,
     .granted_count = 0
 };
@@ -202,7 +163,7 @@ void on_response(cpg_handle_t handle, response_t *resp)
     {
         lock.transitioning = false;
         lock.pending_xid   = 0;
-        lock.desired_mode  = NL;
+        lock.desired_mode  = RWLOCK_MODE_NL;
 
         return;
     }
@@ -213,7 +174,7 @@ void on_response(cpg_handle_t handle, response_t *resp)
         if (lock.granted_count == nodes_count())
         {
             lock.mode = lock.desired_mode;
-            lock.desired_mode = NL;
+            lock.desired_mode = RWLOCK_MODE_NL;
             lock.pending_xid = 0;
             lock.transitioning = false;
             lock.granted_count = 0;
@@ -329,16 +290,16 @@ int main(void)
     char buffer[256];
     while (fgets(buffer, 256, stdin) != NULL)
     {
-        rwlock_mode_t mode = NL;
+        rwlock_mode_t mode = RWLOCK_MODE_NL;
 
         if (!strncmp(buffer, "NL", 2))
-            mode = NL;
+            mode = RWLOCK_MODE_NL;
         else if (!strncmp(buffer, "RD", 2))
-            mode = RD;
+            mode = RWLOCK_MODE_RD;
         else if (!strncmp(buffer, "IW", 2))
-            mode = IW;
+            mode = RWLOCK_MODE_IW;
         else if (!strncmp(buffer, "WR", 2))
-            mode = WR;
+            mode = RWLOCK_MODE_WR;
         else
         {
             fprintf(stderr, "Wrong input");
