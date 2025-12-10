@@ -55,4 +55,14 @@ bool modes_compatible(rwlock_mode_t current, rwlock_mode_t desired)
     return compatibility_table[current][desired];
 }
 
+typedef struct
+{
+    rwlock_mode_t mode;
+    bool          transitioning;
+    rwlock_mode_t desired_mode;
+    xa_id_t       pending_xid;
+    unsigned      granted_count;
+} lock_t;
+
+
 #endif // !DRWLM_LOCK_H

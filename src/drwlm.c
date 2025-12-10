@@ -12,7 +12,9 @@
 #include <corosync/cpg.h>
 #include <corosync/corotypes.h>
 
+#include "types.h"
 #include "lock.h"
+#include "protocol.h"
 
 #define DRWLM_CPG_NAME "drwlm_lockspace"
 
@@ -30,9 +32,6 @@ int send_msg(cpg_handle_t handle, void *msg, size_t len)
 
     return csrv;
 }
-
-typedef unsigned char node_id_t;
-typedef unsigned int  xa_id_t;
 
 static int g_own_id = -1;
 static int g_nodes_count = -1;
@@ -54,57 +53,6 @@ xa_id_t next_xid()
     static xa_id_t xid = 0;
     return xid++;
 }
-
-typedef enum {
-    REQUEST = 0,
-    RESPONSE
-} message_type_t;
-
-typedef struct {
-    message_type_t type;
-} message_header_t;
-
-typedef enum {
-    GRANTED = 0,
-    DENIED
-} reply_t;
-
-char *reply_to_str(reply_t reply)
-{
-    switch (reply)
-    {
-    case GRANTED: return "GRANTED";
-    case DENIED:  return "DENIED";
-    default:
-        return "ERROR";
-    }
-}
-
-typedef struct
-{
-    message_header_t header;
-    node_id_t        from;
-    xa_id_t          xid;
-    rwlock_mode_t    mode;
-} request_t;
-
-typedef struct
-{
-    message_header_t header;
-    node_id_t        to;
-    node_id_t        from;
-    xa_id_t          xid;
-    reply_t          reply;
-} response_t;
-
-typedef struct
-{
-    rwlock_mode_t mode;
-    bool          transitioning;
-    rwlock_mode_t desired_mode;
-    xa_id_t       pending_xid;
-    unsigned      granted_count;
-} lock_t;
 
 static lock_t lock = {
     .mode = RWLOCK_MODE_NL,
@@ -202,15 +150,6 @@ void deliver_cb(cpg_handle_t      handle,
                 void             *msg,
                 size_t            msg_len)
 {
-    // printf("deliver_cb(): message (len=%zu) "
-    //        "group '%.*s' "
-    //        "from %" PRIu32 "/%" PRIu32 " "
-    //        ": '%.*s'\n",
-    //        msg_len,
-    //        groupName->length, groupName->value,
-    //        nodeid, pid,
-    //        msg_len, (const char *)msg);
-
     switch (((message_header_t *)msg)->type)
     {
     case REQUEST:
