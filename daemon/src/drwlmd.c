@@ -1,5 +1,8 @@
 //
-// DRWLM Daemon
+// DRWLM
+// Copyright (c) 2025, DRWLM
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 #include <stdbool.h>
 #include <stdlib.h>
@@ -9,10 +12,9 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-static const char pidfile_path[] = "/var/run/drwlm.pid";
-static const char socket_path[] = "/var/run/drwlm.sock";
+#include <common/defs.h>
 
-static const char usage[] = "Usage: drwlm [-f] [-h]\n"
+static const char usage[] = "Usage: drwlmd [-f] [-h]\n"
                             "  -f    run in foreground\n"
                             "  -h    show this help\n";
 
