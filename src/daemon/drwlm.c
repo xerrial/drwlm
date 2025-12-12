@@ -5,19 +5,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <libutil.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
-const char *usage = "Usage: drwlm [-f] [-h]\n"
-                    "  -f    run in foreground\n"
-                    "  -h    show this help\n";
+static const char pidfile_path[] = "/var/run/drwlm.pid";
+static const char socket_path[] = "/var/run/drwlm.sock";
 
-int become_daemon()
-{
-    return EXIT_SUCCESS;
-}
+static const char usage[] = "Usage: drwlm [-f] [-h]\n"
+                            "  -f    run in foreground\n"
+                            "  -h    show this help\n";
 
 int main(int argc, char *argv[])
 {
-    int  opt       = -1;
+    int rv = EXIT_SUCCESS;
+    int opt = -1;
     bool daemonize = true;
 
     while ((opt = getopt(argc, argv, "fh")) != -1)
@@ -36,8 +38,36 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (daemonize && become_daemon() != 0)
-        return EXIT_FAILURE;
+    pid_t otherpid;
+    pid_t childpid;
+    struct pidfh *pfh = pidfile_open(pidfile_path, 0600, &otherpid);
+    if (pfh == NULL) {
+        if (errno == EEXIST) {
+            err(EXIT_FAILURE, "Daemon already running, pid: %jd.", (intmax_t)otherpid);
+        }
+        /* If we cannot create pidfile from other reasons, only warn. */
+        warn("Cannot open or create pidfile");
+    }
 
-    return EXIT_SUCCESS;
+    if (daemonize && daemon(0, 0) < 0) {
+        warn("Cannot daemonize");
+        rv = EXIT_FAILURE;
+        goto exit;
+    }
+
+    pidfile_write(pfh);
+
+    int clisock = socket(AF_UNIX, SOCKET_STREAM, 0);
+    struct sockaddr_un addr = { .sun_family = AF_UNIX };
+    strcpy(addr.sun_path, socket_path);
+
+    unlink(socket_path);
+
+    bind(clisock, (struct sockaddr *)&addr, sizeof(addr));
+    listen(clisock, 1);
+
+exit:
+    pidfile_remove(pfh);
+
+    return rv;
 }
