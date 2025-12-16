@@ -9,7 +9,7 @@
 
 #pragma once
 
-const char *pidfile_path = "/var/run/drwlm.pid";
-const char *socket_path  = "/var/run/drwlm.sock";
+const char *pidfile_path = "/var/run/drwlmd.pid";
+const char *socket_path  = "/var/run/drwlmd.sock";
 
 #endif // !DRWLM_COMMON_DEFS_H

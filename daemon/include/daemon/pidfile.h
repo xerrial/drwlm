@@ -9,6 +9,8 @@
 
 #pragma once
 
-
+int create_pidfile(const char *pidfile_path);
+int write_pidfile(int pidfd);
+int close_pidfile(int pidfd, const char *pidfile_path);
 
 #endif // !DRWLM_DAEMON_PIDFILE_H
