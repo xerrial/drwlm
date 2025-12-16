@@ -4,6 +4,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 //
+#include <common/logging.h>
 #include <daemon/pidfile.h>
 
 #include <unistd.h>
@@ -14,11 +15,10 @@
 
 int create_pidfile(const char *pidfile_path)
 {
-    int pidfd = -1;
+    int pidfd = open(pidfile_path, O_RDWR | O_CREAT | O_CLOEXEC, S_IWUSR);
 
-    if ((pidfd = open(pidfile_path, O_RDWR | O_CREAT | O_CLOEXEC, S_IWUSR)) < 0)
-    {
-        fprintf(stderr, "Cound not open PID file '%s': %s\n", pidfile_path, strerror(errno));
+    if (pidfd < 0) {
+        error_errno("Cound not open PID file '%s'", pidfile_path);
         return -1;
     }
 
@@ -31,19 +31,17 @@ int create_pidfile(const char *pidfile_path)
     };
 
 retry:
-    if (fcntl(pidfd, F_SETLK, &flock_descr) < 0)
-    {
-        switch (errno)
-        {
+    if (fcntl(pidfd, F_SETLK, &flock_descr) < 0) {
+        switch (errno) {
         case EINTR:
             goto retry;
         case EAGAIN:
         case EACCES:
-            fprintf(stderr, "PID file '%s' is locked; probably daemon is already running\n", pidfile_path);
+            error("PID file '%s' is locked; probably daemon is already running", pidfile_path);
             close(pidfd);
             return -1;
         default:
-            fprintf(stderr, "Failed to set lock on PID file '%s': %s", pidfile_path, strerror(errno));
+            error_errno("Failed to set lock on PID file '%s'", pidfile_path);
             close(pidfd);
             return -1;
         }
@@ -54,25 +52,17 @@ retry:
 
 int write_pidfile(int pidfd)
 {
-    char buf[128];
-    memset(buf, sizeof(buf), 0);
-    // TODO: process errors for a good measure?
-    // Failure is extremely unlikely, since INT_MAX string
-    // is gonna fit into 128 bytes anyways, and usually
-    // maximum PID is even less than INT_MAX.
-    snprintf(buf, sizeof(buf), "%ld\n", (long)getpid());
-    const size_t len = strlen(buf);
+    char buf[64];
+    const size_t len = snprintf(buf, sizeof(buf), "%ld\n", (long)getpid());
 
-    if (ftruncate(pidfd, 0) < 0)
-    {
-        fprintf(stderr, "Cound not truncate PID file '%s': %s\n", strerror(errno));
+    if (ftruncate(pidfd, 0) < 0) {
+        error_errno("Cound not truncate PID file");
         return -1;
     }
 
     // TODO: process EINTR and partial writes
-    if (write(pidfd, buf, len) != len)
-    {
-        fprintf(stderr, "Cound not write PID file '%s': %s\n", strerror(errno));
+    if (write(pidfd, buf, len) != len) {
+        error_errno("Cound not write PID file");
         return -1;
     }
 
@@ -81,9 +71,8 @@ int write_pidfile(int pidfd)
 
 int close_pidfile(int pidfd, const char *pidfile_path)
 {
-    if (unlink(pidfile_path) < 0)
-    {
-        fprintf(stderr, "Failed to unlink '%s': %s\n", pidfile_path, strerror(errno));
+    if (unlink(pidfile_path) < 0) {
+        error_errno("Failed to unlink PID file '%s'", pidfile_path);
     }
 
     const struct flock flock_descr = {
@@ -95,14 +84,12 @@ int close_pidfile(int pidfd, const char *pidfile_path)
     };
 
 retry:
-    if (fcntl(pidfd, F_SETLK, &flock_descr) < 0)
-    {
-        switch (errno)
-        {
+    if (fcntl(pidfd, F_SETLK, &flock_descr) < 0) {
+        switch (errno) {
         case EINTR:
             goto retry;
         default:
-            fprintf(stderr, "Failed to release lock on PID file '%s': %s\n", pidfile_path, strerror(errno));
+            error_errno("Failed to release lock on PID file '%s'", pidfile_path);
         }
     }
 

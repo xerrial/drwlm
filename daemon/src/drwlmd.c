@@ -12,6 +12,7 @@
 #include <syslog.h>
 
 #include <common/defs.h>
+#include <common/logging.h>
 #include <daemon/pidfile.h>
 
 static const char usage[] = "Usage: drwlmd [-f] [-h]\n"
@@ -24,10 +25,8 @@ int main(int argc, char *argv[])
     int opt = -1;
     bool daemonize = true;
 
-    while ((opt = getopt(argc, argv, "fh")) != -1)
-    {
-        switch (opt)
-        {
+    while ((opt = getopt(argc, argv, "fh")) != -1) {
+        switch (opt) {
         case 'f':
             daemonize = false;
             break;
@@ -42,25 +41,23 @@ int main(int argc, char *argv[])
 
     int pidfd = create_pidfile(pidfile_path);
 
-    if (pidfd < 0)
-    {
-        fprintf(stderr, "Failed to create pidfile\n");
+    if (pidfd < 0) {
+        error("Failed to create pidfile");
         return EXIT_FAILURE;
     }
 
     if (daemonize && daemon(0, 0) < 0) {
-        fprintf(stderr, "Cannot daemonize");
+        error("Cannot daemonize");
         rv = EXIT_FAILURE;
         goto exit;
     }
 
-    openlog("drwlmd", LOG_PID, LOG_DAEMON);
+    // openlog("drwlmd", LOG_PID, LOG_DAEMON);
 
-    syslog(LOG_INFO, "Distributed Read-Write Lock Manager has started");
+    info("Distributed Read-Write Lock Manager has started");
 
-    if (write_pidfile(pidfd) < 0)
-    {
-        fprintf(stderr, "Failed to write pidfile\n");
+    if (write_pidfile(pidfd) < 0) {
+        error("Failed to write pidfile");
     }
 
     // int clisock = socket(AF_UNIX, SOCKET_STREAM, 0);
@@ -72,7 +69,7 @@ int main(int argc, char *argv[])
     // bind(clisock, (struct sockaddr *)&addr, sizeof(addr));
     // listen(clisock, 1);
 
-    syslog(LOG_INFO, "Distributed Read-Write Lock Manager exit");
+    info("Distributed Read-Write Lock Manager exit");
 
 exit:
     close_pidfile(pidfd, pidfile_path);
