@@ -16,7 +16,6 @@
 int create_pidfile(const char *pidfile_path)
 {
     int pidfd = open(pidfile_path, O_RDWR | O_CREAT | O_CLOEXEC, S_IWUSR);
-
     if (pidfd < 0) {
         error_errno("Cound not open PID file '%s'", pidfile_path);
         return -1;

@@ -4,12 +4,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 //
-#include <stdlib.h>
-
 #include <common/logging.h>
-#include <common/defs.h>
 
-int main(int argc, char *argv[])
+void __log(log_severity_t severity, const char *fmt, ...)
 {
-    return EXIT_SUCCESS;
+    return;
 }

@@ -7,4 +7,3 @@ target_sources(drwlmd PRIVATE
     src/pidfile.c)
 
 target_link_libraries(drwlmd drwlm-common)
-target_link_libraries(drwlmd util)

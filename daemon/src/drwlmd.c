@@ -40,7 +40,6 @@ int main(int argc, char *argv[])
     }
 
     int pidfd = create_pidfile(pidfile_path);
-
     if (pidfd < 0) {
         error("Failed to create pidfile");
         return EXIT_FAILURE;
