@@ -13,6 +13,7 @@
 
 #include <common/defs.h>
 #include <common/logging.h>
+#include <common/ipc.h>
 #include <daemon/pidfile.h>
 
 static const char usage[] = "Usage: drwlmd [-f] [-h]\n"
@@ -57,20 +58,21 @@ int main(int argc, char *argv[])
 
     if (write_pidfile(pidfd) < 0) {
         error("Failed to write pidfile");
+        rv = EXIT_FAILURE;
+        goto exit;
     }
 
-    // int clisock = socket(AF_UNIX, SOCKET_STREAM, 0);
-    // struct sockaddr_un addr = { .sun_family = AF_UNIX };
-    // strcpy(addr.sun_path, socket_path);
-
-    // unlink(socket_path);
-
-    // bind(clisock, (struct sockaddr *)&addr, sizeof(addr));
-    // listen(clisock, 1);
+    socket_t daemon_sock;
+    if (ipc_start_server(&daemon_sock, socket_path) != OK) {
+        error("Failed to start server");
+        rv = EXIT_FAILURE;
+        goto exit;
+    }
 
     info("Distributed Read-Write Lock Manager exit");
 
 exit:
+    ipc_close(&daemon_sock);
     close_pidfile(pidfd, pidfile_path);
 
     return rv;

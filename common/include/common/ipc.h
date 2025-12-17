@@ -24,15 +24,14 @@ typedef struct __attribute__((packed))
     uint8_t payload[IPC_MAX_PAYLOAD_LENGTH];
 } ipc_message_t;
 
-typedef struct
-{
-    int sock;
-} ipc_connection_t;
+typedef int socket_t;
 
-#define IPC_CONNECTION_DEFAULT_INIT { .sock = -1 }
+error_t ipc_start_server(socket_t *handle, const char *socket_path);
+error_t ipc_connect(socket_t *handle, const char *socket_path);
 
-error_t ipc_connect(ipc_connection_t *connection, const char *socket_path);
-error_t ipc_send(ipc_connection_t *connection, ipc_message_t *message);
-error_t ipc_close(ipc_connection_t *connection);
+error_t ipc_send(const socket_t *handle, ipc_message_t *message);
+
+error_t ipc_close(socket_t *handle);
+
 
 #endif // !DRWLM_COMMON_IPC_H

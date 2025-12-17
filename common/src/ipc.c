@@ -11,40 +11,97 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-error_t ipc_connect(ipc_connection_t *connection, const char *socket_path)
+static error_t make_addr(struct sockaddr_un *addr, const char *socket_path)
 {
-    if (connection == nullptr || socket_path == nullptr)
-        return ERROR_INVALID_ARGUMENT;
-    if (connection->sock >= 0)
+    memset(addr, 0, sizeof(struct sockaddr_un));
+    addr->sun_family = AF_UNIX;
+    // TODO: Handle errors.
+    strncpy(addr->sun_path, socket_path, sizeof(addr->sun_path) - 1);
+
+    return OK;
+}
+
+error_t ipc_start_server(socket_t *handle, const char *socket_path)
+{
+    if (handle == nullptr || socket_path == nullptr)
         return ERROR_INVALID_ARGUMENT;
 
-    int sock = socket(AF_UNIX, SOCK_SEQPACKET, 0);
+    error_t err = OK;
+
+    socket_t sock = socket(AF_UNIX, SOCK_SEQPACKET, 0);
     if (sock < 0) {
         error_errno("Failed to create socket");
         return ERROR_SYSTEM;
     }
 
     struct sockaddr_un addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1); // TODO: Process errors.
+    if (make_addr(&addr, socket_path) != OK) {
+        error("Failed to make addr");
+        err = ERROR_INTERNAL;
+        goto cleanup;
+    }
+
+    if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        error_errno("Failed to bind");
+        err = ERROR_SYSTEM;
+        goto cleanup;
+    }
+
+    if (listen(sock, 1) < 0) {
+        error_errno("Failed to listen");
+        err = ERROR_SYSTEM;
+        goto cleanup;
+    }
+
+    *handle = sock;
+    return OK;
+
+cleanup:
+    close(sock);
+    return err;
+}
+
+error_t ipc_connect(socket_t *handle, const char *socket_path)
+{
+    if (handle == nullptr || socket_path == nullptr)
+        return ERROR_INVALID_ARGUMENT;
+
+    error_t err = OK;
+
+    socket_t sock = socket(AF_UNIX, SOCK_SEQPACKET, 0);
+    if (sock < 0) {
+        error_errno("Failed to create socket");
+        err = ERROR_SYSTEM;
+        goto cleanup;
+    }
+
+    struct sockaddr_un addr;
+    if (make_addr(&addr, socket_path) != OK) {
+        error("Failed to make addr");
+        err = ERROR_INTERNAL;
+        goto cleanup;
+    }
 
     if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         error_errno("Failed to connect socket");
-        return ERROR_SYSTEM;
+        err = ERROR_SYSTEM;
+        goto cleanup;
     }
 
-    connection->sock = sock;
-
+    *handle = sock;
     return OK;
+
+cleanup:
+    close(sock);
+    return err;
 }
 
-error_t ipc_send(ipc_connection_t *connection, ipc_message_t *message)
+error_t ipc_send(const socket_t *handle, ipc_message_t *message)
 {
-    if (connection == nullptr || message == nullptr)
+    if (handle == nullptr || message == nullptr)
         return ERROR_INVALID_ARGUMENT;
 
-    if (write(connection->sock, message, sizeof(ipc_message_t)) < 0) {
+    if (write(*handle, message, sizeof(ipc_message_t)) < 0) {
         error_errno("Failed to write");
         return ERROR_SYSTEM;
     }
@@ -52,13 +109,13 @@ error_t ipc_send(ipc_connection_t *connection, ipc_message_t *message)
     return OK;
 }
 
-error_t ipc_close(ipc_connection_t *connection)
+error_t ipc_close(socket_t *handle)
 {
-    if (connection == nullptr)
+    if (handle == nullptr)
         return ERROR_INVALID_ARGUMENT;
 
-    close(connection->sock);
-    connection->sock = -1;
+    close(*handle);
+    *handle = -1;
 
     return OK;
 }
