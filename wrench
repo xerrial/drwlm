@@ -1,0 +1,30 @@
+#!/bin/bash
+
+BUILD_DIR=build
+BUILD_TYPE=Debug
+
+if [ $# -eq 0 ]; then
+    echo "Missing command" 1>&2
+    exit 1
+fi
+
+COMMAND=$1
+shift
+
+case "$COMMAND" in
+    configure)
+        cmake -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        ;;
+    build)
+        cmake --build ${BUILD_DIR}
+        ;;
+    clean)
+        cmake --build ${BUILD_DIR} --target clean
+        ;;
+    distclean)
+        rm -rf ${BUILD_DIR}
+        ;;
+    *)
+        echo "Invalid command: ${COMMAND}" 1>&2
+        exit 1
+esac
