@@ -12,4 +12,6 @@
 const char *pidfile_path = "/var/run/drwlmd.pid";
 const char *socket_path  = "/var/run/drwlmd.sock";
 
+const char *lockspace_name = "drwlm_lockspace";
+
 #endif // !DRWLM_COMMON_DEFS_H

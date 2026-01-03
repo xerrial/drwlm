@@ -15,13 +15,14 @@ context_t *context_create()
     return calloc(1, sizeof(context_t));
 }
 
-void context_destroy(context_t *ctx)
+void context_destroy(context_t *context)
 {
-    if (ctx == nullptr)
+    if (context == nullptr)
         return;
 
-    ipc_close(ctx->ipc_listener);
-    pidfile_close(ctx->pidfile);
-    free(ctx);
+    corosync_deinit(context->corosync);
+    ipc_close(context->ipc_listener);
+    pidfile_close(context->pidfile);
+    free(context);
 }
 

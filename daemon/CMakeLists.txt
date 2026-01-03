@@ -5,6 +5,7 @@ target_include_directories(drwlmd PRIVATE include)
 target_sources(drwlmd PRIVATE
     src/drwlmd.c
     src/pidfile.c
-    src/context.c)
+    src/context.c
+    src/corosync.c)
 
-target_link_libraries(drwlmd drwlm-common)
+target_link_libraries(drwlmd drwlm-common cpg corosync_common)

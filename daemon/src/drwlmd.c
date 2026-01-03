@@ -41,14 +41,14 @@ int main(int argc, char *argv[])
         }
     }
 
-    context_t *ctx = context_create();
-    if (ctx == nullptr) {
+    context_t *context = context_create();
+    if (context == nullptr) {
         error("Failed to create context");
         goto failure;
     }
 
-    ctx->pidfile = pidfile_open(pidfile_path);
-    if (ctx->pidfile < 0) {
+    context->pidfile = pidfile_open(pidfile_path);
+    if (context->pidfile < 0) {
         error("Failed to open pidfile");
         goto failure;
     }
@@ -62,24 +62,29 @@ int main(int argc, char *argv[])
 
     info("Distributed Read-Write Lock Manager has started");
 
-    if (not pidfile_write(ctx->pidfile)) {
+    if (not pidfile_write(context->pidfile)) {
         error("Failed to write pidfile");
         goto failure;
     }
 
-    ctx->ipc_listener = ipc_start_server(socket_path);
-    if (ctx->ipc_listener < 0) {
+    context->ipc_listener = ipc_start_server(socket_path);
+    if (context->ipc_listener < 0) {
         error("Failed to start server");
+        goto failure;
+    }
+
+    context->corosync = corosync_init(lockspace_name);
+    if (context->corosync == nullptr) {
+        error("Failed to init corosync");
         goto failure;
     }
 
     info("Distributed Read-Write Lock Manager exit");
 
-    context_destroy(ctx);
+    context_destroy(context);
     return EXIT_SUCCESS;
 
 failure:
-    // ipc_close(&daemon_sock);
-    context_destroy(ctx);
+    context_destroy(context);
     return EXIT_FAILURE;
 }

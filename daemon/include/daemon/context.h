@@ -11,8 +11,7 @@
 
 #include <daemon/pidfile.h>
 #include <common/ipc.h>
-#include <corosync/cpg.h>
-#include <corosync/corotypes.h>
+#include <daemon/corosync.h>
 
 /**
  * @brief DRWLM daemon context.
@@ -29,9 +28,9 @@ typedef struct {
     socket_t ipc_listener;
 
     /**
-     * @brief Corosync CPG handle.
+     * @brief Corosync context.
      */
-    cpg_handle_t cpg;
+    corosync_context_t *corosync;
 } context_t;
 
 
