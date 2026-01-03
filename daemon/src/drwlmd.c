@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 #include <iso646.h>
+#include <libgen.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -41,6 +42,8 @@ int main(int argc, char *argv[])
         }
     }
 
+    log_startup(basename(argv[0]));
+
     context_t *context = context_create();
     if (context == nullptr) {
         error("Failed to create context");
@@ -58,7 +61,7 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
-    // openlog("drwlmd", LOG_PID, LOG_DAEMON);
+    log_detach();
 
     info("Distributed Read-Write Lock Manager has started");
 

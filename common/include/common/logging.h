@@ -11,18 +11,22 @@
 
 #include <errno.h>
 #include <string.h>
+#include <syslog.h>
 
 typedef enum {
-    EMERGENCY,
-    ALERT,
-    CRITICAL,
-    ERROR,
-    WARNING,
-    NOTICE,
-    INFO,
-    DEBUG,
-    TRACE
+    EMERGENCY = LOG_EMERG,
+    ALERT     = LOG_ALERT,
+    CRITICAL  = LOG_CRIT,
+    ERROR     = LOG_ERR,
+    WARNING   = LOG_WARNING,
+    NOTICE    = LOG_NOTICE,
+    INFO      = LOG_INFO,
+    DEBUG     = LOG_DEBUG
 } log_severity_t;
+
+void log_startup(const char *proc);
+void log_set_mask(int mask);
+void log_detach(void);
 
 void __log(log_severity_t severity, const char *fmt, ...);
 
