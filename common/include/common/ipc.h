@@ -27,8 +27,8 @@ typedef struct __attribute__((packed))
 typedef int socket_t;
 
 socket_t ipc_start_server(const char *socket_path);
+socket_t ipc_connect(const char *socket_path);
 
-error_t ipc_connect(socket_t *handle, const char *socket_path);
 error_t ipc_send(const socket_t *handle, ipc_message_t *message);
 
 void ipc_close(socket_t handle);

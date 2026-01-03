@@ -12,9 +12,12 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-static bool make_addr(struct sockaddr_un *addr, const char *socket_path)
+typedef struct sockaddr_un sockaddr_un_t;
+typedef struct sockaddr    sockaddr_t;
+
+static bool make_addr(sockaddr_un_t *addr, const char *socket_path)
 {
-    memset(addr, 0, sizeof(struct sockaddr_un));
+    memset(addr, 0, sizeof(sockaddr_un_t));
     addr->sun_family = AF_UNIX;
     // TODO: Handle errors.
     strncpy(addr->sun_path, socket_path, sizeof(addr->sun_path) - 1);
@@ -56,52 +59,54 @@ failure:
     return -1;
 }
 
-error_t ipc_connect(socket_t *handle, const char *socket_path)
+socket_t ipc_connect(const char *socket_path)
 {
-    if (handle == nullptr or socket_path == nullptr)
-        return ERROR_INVALID_ARGUMENT;
+    if (socket_path == nullptr)
+        return -1;
 
-    error_t err = OK;
-
-    socket_t sock = socket(AF_UNIX, SOCK_SEQPACKET, 0);
-    if (sock < 0) {
+    socket_t handle = socket(AF_UNIX, SOCK_SEQPACKET, 0);
+    if (handle < 0) {
         error_errno("Failed to create socket");
-        err = ERROR_SYSTEM;
-        goto cleanup;
+        goto failure;
     }
 
-    struct sockaddr_un addr;
-    if (make_addr(&addr, socket_path) != OK) {
+    sockaddr_un_t addr;
+    if (not make_addr(&addr, socket_path)) {
         error("Failed to make addr");
-        err = ERROR_INTERNAL;
-        goto cleanup;
+        goto failure;
     }
 
-    if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+retry:
+    if (connect(handle, (sockaddr_t *)&addr, sizeof(addr)) < 0) switch (errno) {
+    case EINTR:
+        goto retry;
+    default:
         error_errno("Failed to connect socket");
-        err = ERROR_SYSTEM;
-        goto cleanup;
+        goto failure;
     }
 
-    *handle = sock;
-    return OK;
+    return handle;
 
-cleanup:
-    close(sock);
-    return err;
+failure:
+    close(handle);
+    return -1;
 }
 
-error_t ipc_send(const socket_t *handle, ipc_message_t *message)
+bool ipc_send(socket_t handle, ipc_message_t *message)
 {
-    if (handle == nullptr || message == nullptr)
-        return ERROR_INVALID_ARGUMENT;
+    if (message == nullptr)
+        return false;
 
-    if (write(*handle, message, sizeof(ipc_message_t)) < 0) {
+retry:
+    if (write(handle, message, sizeof(ipc_message_t)) < 0) switch (errno) {
+    case EINTR:
+        goto retry;
+    default:
         error_errno("Failed to write");
-        return ERROR_SYSTEM;
+        return false;
     }
 
-    return OK;
+    return true;
 }
 
 void ipc_close(socket_t handle)
