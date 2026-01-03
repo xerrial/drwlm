@@ -7,63 +7,58 @@
 #include <common/ipc.h>
 #include <common/logging.h>
 
+#include <iso646.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
-static error_t make_addr(struct sockaddr_un *addr, const char *socket_path)
+static bool make_addr(struct sockaddr_un *addr, const char *socket_path)
 {
     memset(addr, 0, sizeof(struct sockaddr_un));
     addr->sun_family = AF_UNIX;
     // TODO: Handle errors.
     strncpy(addr->sun_path, socket_path, sizeof(addr->sun_path) - 1);
 
-    return OK;
+    return true;
 }
 
-error_t ipc_start_server(socket_t *handle, const char *socket_path)
+socket_t ipc_start_server(const char *socket_path)
 {
-    if (handle == nullptr || socket_path == nullptr)
-        return ERROR_INVALID_ARGUMENT;
+    if (socket_path == nullptr)
+        return -1;
 
-    error_t err = OK;
-
-    socket_t sock = socket(AF_UNIX, SOCK_SEQPACKET, 0);
-    if (sock < 0) {
+    socket_t listener = socket(AF_UNIX, SOCK_SEQPACKET, 0);
+    if (listener < 0) {
         error_errno("Failed to create socket");
-        return ERROR_SYSTEM;
+        goto failure;
     }
 
     struct sockaddr_un addr;
-    if (make_addr(&addr, socket_path) != OK) {
+    if (not make_addr(&addr, socket_path)) {
         error("Failed to make addr");
-        err = ERROR_INTERNAL;
-        goto cleanup;
+        goto failure;
     }
 
-    if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    if (bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         error_errno("Failed to bind");
-        err = ERROR_SYSTEM;
-        goto cleanup;
+        goto failure;
     }
 
-    if (listen(sock, 1) < 0) {
+    if (listen(listener, 1) < 0) {
         error_errno("Failed to listen");
-        err = ERROR_SYSTEM;
-        goto cleanup;
+        goto failure;
     }
 
-    *handle = sock;
-    return OK;
+    return listener;
 
-cleanup:
-    close(sock);
-    return err;
+failure:
+    close(listener);
+    return -1;
 }
 
 error_t ipc_connect(socket_t *handle, const char *socket_path)
 {
-    if (handle == nullptr || socket_path == nullptr)
+    if (handle == nullptr or socket_path == nullptr)
         return ERROR_INVALID_ARGUMENT;
 
     error_t err = OK;
@@ -109,13 +104,7 @@ error_t ipc_send(const socket_t *handle, ipc_message_t *message)
     return OK;
 }
 
-error_t ipc_close(socket_t *handle)
+void ipc_close(socket_t handle)
 {
-    if (handle == nullptr)
-        return ERROR_INVALID_ARGUMENT;
-
-    close(*handle);
-    *handle = -1;
-
-    return OK;
+    close(handle);
 }

@@ -4,6 +4,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 //
+#include <iso646.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -15,6 +16,7 @@
 #include <common/logging.h>
 #include <common/ipc.h>
 #include <daemon/pidfile.h>
+#include <daemon/context.h>
 
 static const char usage[] = "Usage: drwlmd [-f] [-h]\n"
                             "  -f    run in foreground\n"
@@ -22,7 +24,6 @@ static const char usage[] = "Usage: drwlmd [-f] [-h]\n"
 
 int main(int argc, char *argv[])
 {
-    int rv = EXIT_SUCCESS;
     int opt = -1;
     bool daemonize = true;
 
@@ -40,40 +41,45 @@ int main(int argc, char *argv[])
         }
     }
 
-    int pidfd = create_pidfile(pidfile_path);
-    if (pidfd < 0) {
-        error("Failed to create pidfile");
-        return EXIT_FAILURE;
+    context_t *ctx = context_create();
+    if (ctx == nullptr) {
+        error("Failed to create context");
+        goto failure;
     }
 
-    if (daemonize && daemon(0, 0) < 0) {
+    ctx->pidfile = pidfile_open(pidfile_path);
+    if (ctx->pidfile < 0) {
+        error("Failed to open pidfile");
+        goto failure;
+    }
+
+    if (daemonize and daemon(0, 0) < 0) {
         error("Cannot daemonize");
-        rv = EXIT_FAILURE;
-        goto exit;
+        goto failure;
     }
 
     // openlog("drwlmd", LOG_PID, LOG_DAEMON);
 
     info("Distributed Read-Write Lock Manager has started");
 
-    if (write_pidfile(pidfd) < 0) {
+    if (not pidfile_write(ctx->pidfile)) {
         error("Failed to write pidfile");
-        rv = EXIT_FAILURE;
-        goto exit;
+        goto failure;
     }
 
-    socket_t daemon_sock;
-    if (ipc_start_server(&daemon_sock, socket_path) != OK) {
+    ctx->ipc_listener = ipc_start_server(socket_path);
+    if (ctx->ipc_listener < 0) {
         error("Failed to start server");
-        rv = EXIT_FAILURE;
-        goto exit;
+        goto failure;
     }
 
     info("Distributed Read-Write Lock Manager exit");
 
-exit:
-    ipc_close(&daemon_sock);
-    close_pidfile(pidfd, pidfile_path);
+    context_destroy(ctx);
+    return EXIT_SUCCESS;
 
-    return rv;
+failure:
+    // ipc_close(&daemon_sock);
+    context_destroy(ctx);
+    return EXIT_FAILURE;
 }

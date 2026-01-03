@@ -12,10 +12,10 @@
 typedef struct {
     int fd;
     const char *path;
-} pidfile_handle_t;
+} pidfile_t;
 
-int create_pidfile(const char *pidfile_path);
-int write_pidfile(int pidfd);
-int close_pidfile(int pidfd, const char *pidfile_path);
+pidfile_t *pidfile_open(const char *pidfile_path);
+bool pidfile_write(pidfile_t *pidfile);
+void pidfile_close(pidfile_t *pidfile);
 
 #endif // !DRWLM_DAEMON_PIDFILE_H

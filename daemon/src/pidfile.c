@@ -7,18 +7,38 @@
 #include <common/logging.h>
 #include <daemon/pidfile.h>
 
+#include <iso646.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <stdlib.h>
 
-int create_pidfile(const char *pidfile_path)
+pidfile_t *pidfile_open(const char *pidfile_path)
 {
-    int pidfd = open(pidfile_path, O_RDWR | O_CREAT | O_CLOEXEC, S_IWUSR);
-    if (pidfd < 0) {
+    if (pidfile_path == nullptr)
+        return nullptr;
+
+    pidfile_t *pidfile = calloc(1, sizeof(pidfile_t));
+    if (pidfile == nullptr)
+        return nullptr;
+
+    pidfile->fd = -1;
+
+    pidfile->path = strdup(pidfile_path);
+    if (pidfile == nullptr) {
+        pidfile_close(pidfile);
+        return nullptr;
+    }
+
+    pidfile->path = nullptr;
+
+    pidfile->fd = open(pidfile_path, O_RDWR | O_CREAT | O_CLOEXEC, S_IWUSR);
+    if (pidfile->fd < 0) {
         error_errno("Cound not open PID file '%s'", pidfile_path);
-        return -1;
+        pidfile_close(pidfile);
+        return nullptr;
     }
 
     const struct flock flock_descr = {
@@ -30,69 +50,77 @@ int create_pidfile(const char *pidfile_path)
     };
 
 retry:
-    if (fcntl(pidfd, F_SETLK, &flock_descr) < 0) {
-        switch (errno) {
-        case EINTR:
-            goto retry;
-        case EAGAIN:
-        case EACCES:
-            error("PID file '%s' is locked; probably daemon is already running", pidfile_path);
-            close(pidfd);
-            return -1;
-        default:
-            error_errno("Failed to set lock on PID file '%s'", pidfile_path);
-            close(pidfd);
-            return -1;
-        }
+    if (fcntl(pidfile->fd, F_SETLK, &flock_descr) < 0) switch (errno) {
+    case EINTR:
+        goto retry;
+    case EAGAIN:
+    case EACCES:
+        error("PID file '%s' is locked; probably daemon is already running", pidfile_path);
+        pidfile_close(pidfile);
+        return nullptr;
+    default:
+        error_errno("Failed to set lock on PID file '%s'", pidfile_path);
+        pidfile_close(pidfile);
+        return nullptr;
     }
 
-    return pidfd;
+    return pidfile;
 }
 
-int write_pidfile(int pidfd)
+bool pidfile_write(pidfile_t *pidfile)
 {
+    if (pidfile == nullptr)
+        return false;
+
     char buf[64];
     const size_t len = snprintf(buf, sizeof(buf), "%ld\n", (long)getpid());
 
-    if (ftruncate(pidfd, 0) < 0) {
+    if (ftruncate(pidfile->fd, 0) < 0) {
         error_errno("Cound not truncate PID file");
-        return -1;
+        return false;
     }
 
-    // TODO: process EINTR and partial writes
-    if (write(pidfd, buf, len) != len) {
+    // TODO: Handle partial writes.
+retry:
+    if (write(pidfile->fd, buf, len) != len) switch (errno) {
+    case EINTR:
+        goto retry;
+    default:
         error_errno("Cound not write PID file");
-        return -1;
+        return false;
     }
 
-    return 0;
+    return true;
 }
 
-int close_pidfile(int pidfd, const char *pidfile_path)
+void pidfile_close(pidfile_t *pidfile)
 {
-    if (unlink(pidfile_path) < 0) {
-        error_errno("Failed to unlink PID file '%s'", pidfile_path);
-    }
+    if (pidfile == nullptr)
+        return;
 
-    const struct flock flock_descr = {
-        .l_type   = F_UNLCK,
-        .l_whence = SEEK_SET,
-        .l_start  = 0,
-        .l_len    = 0,
-        .l_pid    = 0
-    };
+    if (not (pidfile->fd < 0)) {
+        if (unlink(pidfile->path) < 0)
+            error_errno("Failed to unlink PID file '%s'", pidfile->path);
 
-retry:
-    if (fcntl(pidfd, F_SETLK, &flock_descr) < 0) {
-        switch (errno) {
+        const struct flock flock_descr = {
+            .l_type   = F_UNLCK,
+            .l_whence = SEEK_SET,
+            .l_start  = 0,
+            .l_len    = 0,
+            .l_pid    = 0
+        };
+
+    retry:
+        if (fcntl(pidfile->fd, F_SETLK, &flock_descr) < 0) switch (errno) {
         case EINTR:
             goto retry;
         default:
-            error_errno("Failed to release lock on PID file '%s'", pidfile_path);
+            error_errno("Failed to release lock on PID file '%s'", pidfile->path);
         }
+
+        close(pidfile->fd);
     }
 
-    close(pidfd);
-
-    return 0;
+    free((void *)pidfile->path);
+    free(pidfile);
 }

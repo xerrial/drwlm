@@ -26,12 +26,12 @@ typedef struct __attribute__((packed))
 
 typedef int socket_t;
 
-error_t ipc_start_server(socket_t *handle, const char *socket_path);
-error_t ipc_connect(socket_t *handle, const char *socket_path);
+socket_t ipc_start_server(const char *socket_path);
 
+error_t ipc_connect(socket_t *handle, const char *socket_path);
 error_t ipc_send(const socket_t *handle, ipc_message_t *message);
 
-error_t ipc_close(socket_t *handle);
+void ipc_close(socket_t handle);
 
 
 #endif // !DRWLM_COMMON_IPC_H
