@@ -4,12 +4,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 //
-#include <stdlib.h>
+#ifndef DRWLM_DAEMON_CONTEXT_H
+#define DRWLM_DAEMON_CONTEXT_H
 
-#include <common/logging.h>
-#include <common/defs.h>
+#pragma once
 
-int main(int argc, char *argv[])
-{
-    return EXIT_SUCCESS;
-}
+typedef struct {} context_t;
+
+#endif // !DRWLM_DAEMON_CONTEXT_H

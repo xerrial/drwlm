@@ -4,12 +4,4 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 //
-#include <stdlib.h>
-
-#include <common/logging.h>
-#include <common/defs.h>
-
-int main(int argc, char *argv[])
-{
-    return EXIT_SUCCESS;
-}
+#include <daemon/context.h>
