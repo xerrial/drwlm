@@ -23,12 +23,12 @@ typedef packed struct {
 } ipc_message_t;
 
 typedef struct {
-    const char *addr;
-    int sock;
+    const char *path;
+    int socket;
 } ipc_socket_t;
 
-ipc_socket_t *ipc_start_server(const char *socket_path);
-ipc_socket_t *ipc_connect(const char *socket_path);
+ipc_socket_t *ipc_start_listener(const char *path);
+ipc_socket_t *ipc_start_connection(const char *path);
 bool ipc_send(ipc_socket_t *handle, ipc_message_t *message);
 void ipc_close(ipc_socket_t *handle);
 

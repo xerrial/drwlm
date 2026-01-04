@@ -31,10 +31,10 @@ typedef struct {
      * @brief Corosync context.
      */
     corosync_context_t *corosync;
-} context_t;
+} daemon_context_t;
 
 
-context_t *context_create();
-void context_destroy(context_t *ctx);
+daemon_context_t *daemon_context_create();
+void daemon_context_destroy(daemon_context_t *ctx);
 
 #endif // !DRWLM_DAEMON_CONTEXT_H

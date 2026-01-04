@@ -10,12 +10,12 @@
 
 #include <stdlib.h>
 
-context_t *context_create()
+daemon_context_t *daemon_context_create()
 {
-    return calloc(1, sizeof(context_t));
+    return calloc(1, sizeof(daemon_context_t));
 }
 
-void context_destroy(context_t *context)
+void daemon_context_destroy(daemon_context_t *context)
 {
     if (context == nullptr)
         return;

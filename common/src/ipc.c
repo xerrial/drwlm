@@ -16,19 +16,19 @@
 typedef struct sockaddr_un sockaddr_un_t;
 typedef struct sockaddr    sockaddr_t;
 
-static bool make_addr(sockaddr_un_t *addr, const char *socket_path)
+static bool make_addr(sockaddr_un_t *addr, const char *path)
 {
     memset(addr, 0, sizeof(sockaddr_un_t));
     addr->sun_family = AF_UNIX;
     // TODO: Handle errors.
-    strncpy(addr->sun_path, socket_path, sizeof(addr->sun_path) - 1);
+    strncpy(addr->sun_path, path, sizeof(addr->sun_path) - 1);
 
     return true;
 }
 
-ipc_socket_t *ipc_start_server(const char *socket_path)
+ipc_socket_t *ipc_start_listener(const char *path)
 {
-    if (socket_path == nullptr)
+    if (path == nullptr)
         return nullptr;
 
     ipc_socket_t *listener = calloc(1, sizeof(ipc_socket_t));
@@ -37,41 +37,41 @@ ipc_socket_t *ipc_start_server(const char *socket_path)
         return nullptr;
     }
 
-    listener->sock = -1;
-    listener->addr = nullptr;
+    listener->socket = -1;
+    listener->path   = nullptr;
 
-    listener->addr = strdup(socket_path);
-    if (listener->addr == nullptr) {
+    listener->path = strdup(path);
+    if (listener->path == nullptr) {
         error("Failed to strdup: %s", strerror(errno));
         goto failure;
     }
 
-    if (unlink(socket_path) < 0) switch (errno) {
+    if (unlink(path) < 0) switch (errno) {
     case ENOENT:
         break;
     default:
-        error("Failed to unlink stale socket '%s': %s", socket_path, strerror(errno));
+        error("Failed to unlink stale socket '%s': %s", path, strerror(errno));
         goto failure;
     }
 
-    listener->sock = socket(AF_UNIX, SOCK_SEQPACKET, 0);
-    if (listener->sock < 0) {
+    listener->socket = socket(AF_UNIX, SOCK_SEQPACKET, 0);
+    if (listener->socket < 0) {
         error("Failed to create socket: %s", strerror(errno));
         goto failure;
     }
 
     sockaddr_un_t addr;
-    if (not make_addr(&addr, socket_path)) {
+    if (not make_addr(&addr, path)) {
         error("Failed to make addr");
         goto failure;
     }
 
-    if (bind(listener->sock, (sockaddr_t *)&addr, sizeof(addr)) < 0) {
+    if (bind(listener->socket, (sockaddr_t *)&addr, sizeof(addr)) < 0) {
         error("Failed to bind: %s", strerror(errno));
         goto failure;
     }
 
-    if (listen(listener->sock, 1) < 0) {
+    if (listen(listener->socket, 1) < 0) {
         error("Failed to listen: %s", strerror(errno));
         goto failure;
     }
@@ -83,9 +83,9 @@ failure:
     return nullptr;
 }
 
-ipc_socket_t *ipc_connect(const char *socket_path)
+ipc_socket_t *ipc_start_connection(const char *path)
 {
-    if (socket_path == nullptr)
+    if (path == nullptr)
         return nullptr;
 
     ipc_socket_t *connection = calloc(1, sizeof(ipc_socket_t));
@@ -94,23 +94,23 @@ ipc_socket_t *ipc_connect(const char *socket_path)
         return nullptr;
     }
 
-    connection->sock = -1;
-    connection->addr = nullptr;
+    connection->socket = -1;
+    connection->path   = nullptr;
 
-    connection->sock = socket(AF_UNIX, SOCK_SEQPACKET, 0);
-    if (connection->sock < 0) {
-        error("Failed to connect to '%s': %s", socket_path, strerror(errno));
+    connection->socket = socket(AF_UNIX, SOCK_SEQPACKET, 0);
+    if (connection->socket < 0) {
+        error("Failed to connect to '%s': %s", path, strerror(errno));
         goto failure;
     }
 
     sockaddr_un_t addr;
-    if (not make_addr(&addr, socket_path)) {
+    if (not make_addr(&addr, path)) {
         error("Failed to make addr");
         goto failure;
     }
 
 retry:
-    int rv = connect(connection->sock, (sockaddr_t *)&addr, sizeof(addr));
+    int rv = connect(connection->socket, (sockaddr_t *)&addr, sizeof(addr));
     if (rv < 0) switch (errno) {
     case EINTR:
         goto retry;
@@ -132,7 +132,7 @@ bool ipc_send(ipc_socket_t *handle, ipc_message_t *message)
         return false;
 
 retry:
-    int len = write(handle->sock, message, sizeof(ipc_message_t));
+    int len = write(handle->socket, message, sizeof(ipc_message_t));
     if (len < 0) switch (errno) {
     case EINTR:
         goto retry;
@@ -146,14 +146,14 @@ retry:
 
 void ipc_close(ipc_socket_t *handle)
 {
-    if (not (handle->sock < 0)) {
-        if (close(handle->sock) < 0)
-            error("Failed to close socket '%s': %s", handle->addr, strerror(errno));
+    if (not (handle->socket < 0)) {
+        if (close(handle->socket) < 0)
+            error("Failed to close socket '%s': %s", handle->path, strerror(errno));
 
-        if (handle->addr != nullptr and unlink(handle->addr) < 0)
-            error("Failed to unlink '%s': %s", handle->addr, strerror(errno));
+        if (handle->path != nullptr and unlink(handle->path) < 0)
+            error("Failed to unlink '%s': %s", handle->path, strerror(errno));
     }
 
-    free((void *)handle->addr);
+    free((void *)handle->path);
     free(handle);
 }

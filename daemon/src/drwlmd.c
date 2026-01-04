@@ -44,14 +44,14 @@ int main(int argc, char *argv[])
 
     log_startup(basename(argv[0]));
 
-    context_t *context = context_create();
+    daemon_context_t *context = daemon_context_create();
     if (context == nullptr) {
         error("Failed to create context");
         goto failure;
     }
 
     context->pidfile = pidfile_open(pidfile_path);
-    if (context->pidfile < 0) {
+    if (context->pidfile == nullptr) {
         error("Failed to open pidfile");
         goto failure;
     }
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
-    context->listener = ipc_start_server(socket_path);
+    context->listener = ipc_start_listener(socket_path);
     if (context->listener == nullptr) {
         error("Failed to start server");
         goto failure;
@@ -84,12 +84,12 @@ int main(int argc, char *argv[])
 
     info("Distributed Read-Write Lock Manager exit");
 
-    context_destroy(context);
+    daemon_context_destroy(context);
     return EXIT_SUCCESS;
 
 failure:
     error("Distributed Read-Write Lock Manager shutdown due to failure");
 
-    context_destroy(context);
+    daemon_context_destroy(context);
     return EXIT_FAILURE;
 }

@@ -38,6 +38,5 @@ void __log(log_severity_t severity, const char *fmt, ...);
 #define notice(fmt, ...)    __log(NOTICE,    fmt "\n" __VA_OPT__(,) __VA_ARGS__)
 #define info(fmt, ...)      __log(INFO,      fmt "\n" __VA_OPT__(,) __VA_ARGS__)
 #define debug(fmt, ...)     __log(DEBUG,     fmt "\n" __VA_OPT__(,) __VA_ARGS__)
-#define trace(fmt, ...)     __log(TRACE,     fmt "\n" __VA_OPT__(,) __VA_ARGS__)
 
 #endif // !DRWLM_COMMON_LOGGING_H
