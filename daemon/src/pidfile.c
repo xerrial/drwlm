@@ -15,9 +15,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-pidfile_t *pidfile_open(const char *pidfile_path)
+pidfile_t *pidfile_open(const char *path)
 {
-    if (pidfile_path == nullptr)
+    if (path == nullptr)
         return nullptr;
 
     pidfile_t *pidfile = calloc(1, sizeof(pidfile_t));
@@ -29,18 +29,16 @@ pidfile_t *pidfile_open(const char *pidfile_path)
     pidfile->fd   = -1;
     pidfile->path = nullptr;
 
-    pidfile->path = strdup(pidfile_path);
+    pidfile->path = strdup(path);
     if (pidfile->path == nullptr) {
         error("Failed to strdup: %s", strerror(errno));
-        pidfile_close(pidfile);
-        return nullptr;
+        goto failure;
     }
 
-    pidfile->fd = open(pidfile_path, O_RDWR | O_CREAT | O_CLOEXEC, S_IWUSR);
+    pidfile->fd = open(path, O_RDWR | O_CREAT | O_CLOEXEC, S_IWUSR);
     if (pidfile->fd < 0) {
-        error("Could not open PID file '%s': %s", pidfile_path, strerror(errno));
-        pidfile_close(pidfile);
-        return nullptr;
+        error("Could not open PID file '%s': %s", path, strerror(errno));
+        goto failure;
     }
 
     const struct flock flock_descr = {
@@ -57,16 +55,18 @@ retry:
         goto retry;
     case EAGAIN:
     case EACCES:
-        error("PID file '%s' is locked; probably daemon is already running", pidfile_path);
-        pidfile_close(pidfile);
-        return nullptr;
+        error("PID file '%s' is locked; probably daemon is already running", path);
+        goto failure;
     default:
-        error("Failed to set lock on PID file '%s': %s", pidfile_path, strerror(errno));
-        pidfile_close(pidfile);
-        return nullptr;
+        error("Failed to set lock on PID file '%s': %s", path, strerror(errno));
+        goto failure;
     }
 
     return pidfile;
+
+failure:
+    pidfile_close(pidfile);
+    return nullptr;
 }
 
 bool pidfile_write(pidfile_t *pidfile)
@@ -120,7 +120,8 @@ void pidfile_close(pidfile_t *pidfile)
             error("Failed to release lock on PID file '%s': %s", pidfile->path, strerror(errno));
         }
 
-        close(pidfile->fd);
+        if (close(pidfile->fd) < 0)
+            error("Failed to close PID file '%s': %s", pidfile->path, strerror(errno));
     }
 
     free((void *)pidfile->path);

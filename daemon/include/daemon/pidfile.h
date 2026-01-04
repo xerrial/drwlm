@@ -14,7 +14,7 @@ typedef struct {
     const char *path;
 } pidfile_t;
 
-pidfile_t *pidfile_open(const char *pidfile_path);
+pidfile_t *pidfile_open(const char *path);
 bool pidfile_write(pidfile_t *pidfile);
 void pidfile_close(pidfile_t *pidfile);
 
