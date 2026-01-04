@@ -25,7 +25,7 @@ typedef struct {
     /**
      * @brief IPC listener socket.
      */
-    socket_t ipc_listener;
+    ipc_socket_t *listener;
 
     /**
      * @brief Corosync context.

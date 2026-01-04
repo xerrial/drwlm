@@ -21,7 +21,7 @@ void context_destroy(context_t *context)
         return;
 
     corosync_deinit(context->corosync);
-    ipc_close(context->ipc_listener);
+    ipc_close(context->listener);
     pidfile_close(context->pidfile);
     free(context);
 }

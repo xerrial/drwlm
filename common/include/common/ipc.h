@@ -22,14 +22,15 @@ typedef packed struct {
     uint8_t payload[IPC_MAX_PAYLOAD_LENGTH];
 } ipc_message_t;
 
-typedef int socket_t;
+typedef struct {
+    const char *addr;
+    int sock;
+} ipc_socket_t;
 
-socket_t ipc_start_server(const char *socket_path);
-socket_t ipc_connect(const char *socket_path);
-
-bool ipc_send(socket_t handle, ipc_message_t *message);
-
-void ipc_close(socket_t handle);
+ipc_socket_t *ipc_start_server(const char *socket_path);
+ipc_socket_t *ipc_connect(const char *socket_path);
+bool ipc_send(ipc_socket_t *handle, ipc_message_t *message);
+void ipc_close(ipc_socket_t *handle);
 
 
 #endif // !DRWLM_COMMON_IPC_H

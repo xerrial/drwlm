@@ -70,8 +70,8 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
-    context->ipc_listener = ipc_start_server(socket_path);
-    if (context->ipc_listener < 0) {
+    context->listener = ipc_start_server(socket_path);
+    if (context->listener == nullptr) {
         error("Failed to start server");
         goto failure;
     }
