@@ -35,6 +35,6 @@ typedef struct {
 
 
 daemon_context_t *daemon_context_create();
-void daemon_context_destroy(daemon_context_t *ctx);
+void daemon_context_destroy(daemon_context_t *context);
 
 #endif // !DRWLM_DAEMON_CONTEXT_H

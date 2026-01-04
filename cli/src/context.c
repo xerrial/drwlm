@@ -4,30 +4,25 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 //
-#include <daemon/context.h>
-#include <daemon/pidfile.h>
-#include <common/ipc.h>
+#include <cli/context.h>
 #include <common/logging.h>
 
 #include <stdlib.h>
 
-daemon_context_t *daemon_context_create()
+cli_context_t *cli_context_create()
 {
-    daemon_context_t *context = calloc(1, sizeof(daemon_context_t));
+    cli_context_t *context = calloc(1, sizeof(cli_context_t));
     if (context == nullptr)
         error("Failed to allocate context: %s", strerror(errno));
 
     return context;
 }
 
-void daemon_context_destroy(daemon_context_t *context)
+void cli_context_destroy(cli_context_t *context)
 {
     if (context == nullptr)
         return;
 
-    corosync_deinit(context->corosync);
-    ipc_close(context->listener);
-    pidfile_close(context->pidfile);
+    ipc_close(context->connection);
     free(context);
 }
-

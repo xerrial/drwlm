@@ -9,9 +9,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <syslog.h>
 
 #include <common/defs.h>
 #include <common/logging.h>
