@@ -21,22 +21,24 @@ pidfile_t *pidfile_open(const char *pidfile_path)
         return nullptr;
 
     pidfile_t *pidfile = calloc(1, sizeof(pidfile_t));
-    if (pidfile == nullptr)
+    if (pidfile == nullptr) {
+        error("Failed to allocate pidfile descriptor: %s", strerror(errno));
         return nullptr;
+    }
 
-    pidfile->fd = -1;
+    pidfile->fd   = -1;
+    pidfile->path = nullptr;
 
     pidfile->path = strdup(pidfile_path);
-    if (pidfile == nullptr) {
+    if (pidfile->path == nullptr) {
+        error("Failed to strdup: %s", strerror(errno));
         pidfile_close(pidfile);
         return nullptr;
     }
 
-    pidfile->path = nullptr;
-
     pidfile->fd = open(pidfile_path, O_RDWR | O_CREAT | O_CLOEXEC, S_IWUSR);
     if (pidfile->fd < 0) {
-        error_errno("Cound not open PID file '%s'", pidfile_path);
+        error("Could not open PID file '%s': %s", pidfile_path, strerror(errno));
         pidfile_close(pidfile);
         return nullptr;
     }
@@ -59,7 +61,7 @@ retry:
         pidfile_close(pidfile);
         return nullptr;
     default:
-        error_errno("Failed to set lock on PID file '%s'", pidfile_path);
+        error("Failed to set lock on PID file '%s': %s", pidfile_path, strerror(errno));
         pidfile_close(pidfile);
         return nullptr;
     }
@@ -76,7 +78,7 @@ bool pidfile_write(pidfile_t *pidfile)
     const size_t len = snprintf(buf, sizeof(buf), "%ld\n", (long)getpid());
 
     if (ftruncate(pidfile->fd, 0) < 0) {
-        error_errno("Cound not truncate PID file");
+        error("Cound not truncate PID file: %s", strerror(errno));
         return false;
     }
 
@@ -86,7 +88,7 @@ retry:
     case EINTR:
         goto retry;
     default:
-        error_errno("Cound not write PID file");
+        error("Cound not write PID file: %s", strerror(errno));
         return false;
     }
 
@@ -100,7 +102,7 @@ void pidfile_close(pidfile_t *pidfile)
 
     if (not (pidfile->fd < 0)) {
         if (unlink(pidfile->path) < 0)
-            error_errno("Failed to unlink PID file '%s'", pidfile->path);
+            error("Failed to unlink PID file '%s': %s", pidfile->path, strerror(errno));
 
         const struct flock flock_descr = {
             .l_type   = F_UNLCK,
@@ -115,7 +117,7 @@ void pidfile_close(pidfile_t *pidfile)
         case EINTR:
             goto retry;
         default:
-            error_errno("Failed to release lock on PID file '%s'", pidfile->path);
+            error("Failed to release lock on PID file '%s': %s", pidfile->path, strerror(errno));
         }
 
         close(pidfile->fd);

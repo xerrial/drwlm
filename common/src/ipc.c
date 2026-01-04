@@ -32,7 +32,7 @@ socket_t ipc_start_server(const char *socket_path)
 
     socket_t listener = socket(AF_UNIX, SOCK_SEQPACKET, 0);
     if (listener < 0) {
-        error_errno("Failed to create socket");
+        error("Failed to create socket: %s", strerror(errno));
         goto failure;
     }
 
@@ -43,12 +43,12 @@ socket_t ipc_start_server(const char *socket_path)
     }
 
     if (bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        error_errno("Failed to bind");
+        error("Failed to bind: %s", strerror(errno));
         goto failure;
     }
 
     if (listen(listener, 1) < 0) {
-        error_errno("Failed to listen");
+        error("Failed to listen: %s", strerror(errno));
         goto failure;
     }
 
@@ -66,7 +66,7 @@ socket_t ipc_connect(const char *socket_path)
 
     socket_t handle = socket(AF_UNIX, SOCK_SEQPACKET, 0);
     if (handle < 0) {
-        error_errno("Failed to create socket");
+        error("Failed to create socket: %s", strerror(errno));
         goto failure;
     }
 
@@ -81,7 +81,7 @@ retry:
     case EINTR:
         goto retry;
     default:
-        error_errno("Failed to connect socket");
+        error("Failed to connect socket: %s", strerror(errno));
         goto failure;
     }
 
@@ -102,7 +102,7 @@ retry:
     case EINTR:
         goto retry;
     default:
-        error_errno("Failed to write");
+        error("Failed to write: %s", strerror(errno));
         return false;
     }
 

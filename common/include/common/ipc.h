@@ -9,16 +9,14 @@
 
 #pragma once
 
+#include <common/utils.h>
+
 #include <stdint.h>
 #include <stddef.h>
-#include <common/error.h>
 
-// TODO: Add static_assert on sizes.
+#define IPC_MAX_PAYLOAD_LENGTH 254
 
-constexpr size_t IPC_MAX_PAYLOAD_LENGTH = 254;
-
-typedef struct __attribute__((packed))
-{
+typedef packed struct {
     uint8_t type;
     uint8_t length;
     uint8_t payload[IPC_MAX_PAYLOAD_LENGTH];

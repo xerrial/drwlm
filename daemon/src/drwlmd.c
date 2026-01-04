@@ -88,6 +88,8 @@ int main(int argc, char *argv[])
     return EXIT_SUCCESS;
 
 failure:
+    error("Distributed Read-Write Lock Manager shutdown due to failure");
+
     context_destroy(context);
     return EXIT_FAILURE;
 }

@@ -40,14 +40,4 @@ void __log(log_severity_t severity, const char *fmt, ...);
 #define debug(fmt, ...)     __log(DEBUG,     fmt "\n" __VA_OPT__(,) __VA_ARGS__)
 #define trace(fmt, ...)     __log(TRACE,     fmt "\n" __VA_OPT__(,) __VA_ARGS__)
 
-#define emergency_errno(fmt, ...) emergency(fmt ": %s" __VA_OPT__(,) __VA_ARGS__, strerror(errno))
-#define alert_errno(fmt, ...)     alert    (fmt ": %s" __VA_OPT__(,) __VA_ARGS__, strerror(errno))
-#define critical_errno(fmt, ...)  critical (fmt ": %s" __VA_OPT__(,) __VA_ARGS__, strerror(errno))
-#define error_errno(fmt, ...)     error    (fmt ": %s" __VA_OPT__(,) __VA_ARGS__, strerror(errno))
-#define warning_errno(fmt, ...)   warning  (fmt ": %s" __VA_OPT__(,) __VA_ARGS__, strerror(errno))
-#define notice_errno(fmt, ...)    notice   (fmt ": %s" __VA_OPT__(,) __VA_ARGS__, strerror(errno))
-#define info_errno(fmt, ...)      info     (fmt ": %s" __VA_OPT__(,) __VA_ARGS__, strerror(errno))
-#define debug_errno(fmt, ...)     debug    (fmt ": %s" __VA_OPT__(,) __VA_ARGS__, strerror(errno))
-#define trace_errno(fmt, ...)     trace    (fmt ": %s" __VA_OPT__(,) __VA_ARGS__, strerror(errno))
-
 #endif // !DRWLM_COMMON_LOGGING_H

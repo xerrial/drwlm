@@ -70,7 +70,7 @@ corosync_context_t *corosync_init(const char *group_name)
 
     rv = cpg_model_initialize(&context->cpg, model, model_data, nullptr);
     if (rv != CS_OK) {
-        error_errno("Failed to initialize cpg_model: %s", cs_strerror(rv));
+        error("Failed to initialize cpg_model: %s: %s", cs_strerror(rv), strerror(errno));
         goto failure;
     }
 
@@ -81,13 +81,13 @@ corosync_context_t *corosync_init(const char *group_name)
 
     rv = cpg_join(context->cpg, &name);
     if (rv != CS_OK) {
-        error_errno("Failed to join cpg: %s", cs_strerror(rv));
+        error("Failed to join cpg: %s: %s", cs_strerror(rv), strerror(errno));
         goto failure;
     }
 
     rv = cpg_local_get(context->cpg, &context->own_id);
     if (rv != CS_OK) {
-        error_errno("Failed to get local id: %s", cs_strerror(rv));
+        error("Failed to get local id: %s: %s", cs_strerror(rv), strerror(errno));
         goto failure;
     }
 

@@ -30,18 +30,18 @@ typedef enum : uint8_t {
 #define PROTOCOL_HEADER \
     protocol_message_type_t type;
 
-typedef packed_struct {
+typedef packed struct {
     PROTOCOL_HEADER
 } protocol_message_t;
 
-typedef packed_struct {
+typedef packed struct {
     PROTOCOL_HEADER
     protocol_node_id_t     sender;
     protocol_xaction_id_t  xaction;
     protocol_rwlock_mode_t mode;
 } protocol_request_t;
 
-typedef packed_struct {
+typedef packed struct {
     PROTOCOL_HEADER
     protocol_node_id_t    sender;
     protocol_node_id_t    addressee;

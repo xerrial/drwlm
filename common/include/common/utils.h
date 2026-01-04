@@ -9,6 +9,6 @@
 
 #pragma once
 
-#define packed_struct struct __attribute__((packed))
+#define packed __attribute__((packed))
 
 #endif // !DRWLM_COMMON_UTILS_H
