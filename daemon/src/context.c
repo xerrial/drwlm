@@ -5,8 +5,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 #include <daemon/context.h>
-#include <daemon/pidfile.h>
-#include <common/ipc.h>
 #include <common/logging.h>
 
 #include <stdlib.h>
@@ -25,6 +23,7 @@ void daemon_context_destroy(daemon_context_t *context)
     if (context == nullptr)
         return;
 
+    engine_destroy(context->engine);
     corosync_deinit(context->corosync);
     ipc_close(context->listener);
     pidfile_close(context->pidfile);

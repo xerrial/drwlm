@@ -6,6 +6,7 @@ target_sources(drwlmd PRIVATE
     src/drwlmd.c
     src/pidfile.c
     src/context.c
-    src/corosync.c)
+    src/corosync.c
+    src/engine.c)
 
 target_link_libraries(drwlmd drwlm-common cpg corosync_common)

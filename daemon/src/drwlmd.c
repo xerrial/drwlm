@@ -79,6 +79,12 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
+    context->engine = engine_create();
+    if (context->engine == nullptr) {
+        error("Failed to init engine");
+        goto failure;
+    }
+
     info("Distributed Read-Write Lock Manager exit");
 
     daemon_context_destroy(context);

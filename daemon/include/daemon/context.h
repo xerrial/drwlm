@@ -12,6 +12,7 @@
 #include <daemon/pidfile.h>
 #include <common/ipc.h>
 #include <daemon/corosync.h>
+#include <daemon/engine.h>
 
 /**
  * @brief DRWLM daemon context.
@@ -31,6 +32,11 @@ typedef struct {
      * @brief Corosync context.
      */
     corosync_context_t *corosync;
+
+    /**
+     * @brief Event loop context.
+     */
+    engine_t *engine;
 } daemon_context_t;
 
 

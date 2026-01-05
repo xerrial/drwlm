@@ -11,4 +11,6 @@
 
 #define packed __attribute__((packed))
 
+#define lengthof(array) (sizeof(array) / sizeof(array[0]))
+
 #endif // !DRWLM_COMMON_UTILS_H
