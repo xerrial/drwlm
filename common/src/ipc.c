@@ -128,7 +128,7 @@ failure:
 
 bool ipc_send(ipc_socket_t *handle, ipc_message_t *message)
 {
-    if (message == nullptr)
+    if (handle == nullptr or message == nullptr)
         return false;
 
 retry:
@@ -146,6 +146,9 @@ retry:
 
 void ipc_close(ipc_socket_t *handle)
 {
+    if (handle == nullptr)
+        return;
+
     if (not (handle->socket < 0)) {
         if (close(handle->socket) < 0)
             error("Failed to close socket '%s': %s", handle->path, strerror(errno));
