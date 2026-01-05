@@ -1,6 +1,6 @@
 //
 // DRWLM: Distributed Read-Write Lock Manager
-// Copyright (c) 2026, Dmitry Kuzmenko <dimass1129@gmail.com>
+// Copyright (c) 2025-2026, The DRWLM contributors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 //
