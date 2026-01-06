@@ -11,7 +11,7 @@
 
 #include <daemon/pidfile.h>
 #include <common/ipc.h>
-#include <daemon/corosync.h>
+#include <daemon/transport.h>
 #include <daemon/engine.h>
 
 /**
@@ -29,12 +29,12 @@ typedef struct {
     ipc_socket_t *listener;
 
     /**
-     * @brief Corosync context.
+     * @brief Internode transport handle.
      */
-    corosync_context_t *corosync;
+    transport_t *transport;
 
     /**
-     * @brief Event loop context.
+     * @brief Event loop handle.
      */
     engine_t *engine;
 } daemon_context_t;

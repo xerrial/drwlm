@@ -24,7 +24,7 @@ void daemon_context_destroy(daemon_context_t *context)
         return;
 
     engine_destroy(context->engine);
-    corosync_deinit(context->corosync);
+    transport_deinit(context->transport);
     ipc_close(context->listener);
     pidfile_close(context->pidfile);
     free(context);

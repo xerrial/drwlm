@@ -73,9 +73,9 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
-    context->corosync = corosync_init(lockspace_name);
-    if (context->corosync == nullptr) {
-        error("Failed to init corosync");
+    context->transport = transport_init(lockspace_name);
+    if (context->transport == nullptr) {
+        error("Failed to init transport");
         goto failure;
     }
 

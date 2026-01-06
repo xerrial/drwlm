@@ -31,10 +31,10 @@ typedef struct
      * @todo Define type for node id.
      */
     unsigned own_id;
-} corosync_context_t;
+} transport_t;
 
-corosync_context_t *corosync_init(const char *group_name);
-void corosync_deinit(corosync_context_t *context);
+transport_t *transport_init(const char *group_name);
+void transport_deinit(transport_t *context);
 
 
 #endif // !DRWLM_DAEMON_COROSYNC_H

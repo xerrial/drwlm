@@ -4,7 +4,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 //
-#include <daemon/corosync.h>
+#include <daemon/transport.h>
 #include <common/logging.h>
 
 #include <stdlib.h>
@@ -51,12 +51,12 @@ static cpg_model_v1_data_t model_v1_data = {
     .flags                = CPG_MODEL_V1_DELIVER_INITIAL_TOTEM_CONF
 };
 
-corosync_context_t *corosync_init(const char *group_name)
+transport_t *transport_init(const char *group_name)
 {
     if (group_name == nullptr)
         return nullptr;
 
-    corosync_context_t *context = calloc(1, sizeof(corosync_context_t));
+    transport_t *context = calloc(1, sizeof(transport_t));
     if (context == nullptr)
         return nullptr;
 
@@ -94,11 +94,11 @@ corosync_context_t *corosync_init(const char *group_name)
     return context;
 
 failure:
-    corosync_deinit(context);
+    transport_deinit(context);
     return nullptr;
 }
 
-void corosync_deinit(corosync_context_t *context)
+void transport_deinit(transport_t *context)
 {
     if (context == nullptr)
         return;
