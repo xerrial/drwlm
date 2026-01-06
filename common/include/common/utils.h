@@ -13,6 +13,8 @@
 
 #define packed __attribute__((packed))
 
+#define loop while (true)
+
 #define lengthof(array) (sizeof(array) / sizeof(array[0]))
 
 #define allocate(type) calloc(1, sizeof(type))

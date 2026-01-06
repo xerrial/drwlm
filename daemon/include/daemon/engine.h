@@ -9,9 +9,14 @@
 
 #pragma once
 
-typedef void(*engine_callback_t)(void *data);
+typedef void (*engine_callback_t)(int descriptor, void *context);
 
 typedef struct engine_event_handler {
+    /**
+     * @brief Monitored descriptor.
+     */
+    int descriptor;
+
     /**
      * @brief Function to be called on event.
      */

@@ -9,7 +9,6 @@
 #include <common/logging.h>
 #include <common/utils.h>
 
-
 #include <iso646.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -50,8 +49,9 @@ bool engine_register(engine_t *engine, int descriptor,
     if (handler == nullptr)
         return false;
 
-    handler->callback = callback;
-    handler->context  = context;
+    handler->descriptor = descriptor;
+    handler->callback   = callback;
+    handler->context    = context;
 
     epoll_event_t event = { .events = EPOLLIN, .data.ptr = handler };
 
@@ -77,16 +77,22 @@ bool engine_start(engine_t *engine)
 
     engine->stop = false;
 
-    epoll_event_t event[1];
+    epoll_event_t event;
 
     while (not engine->stop) {
-        int num = epoll_wait(engine->epoll, event, lengthof(event), -1);
+        int num = epoll_wait(engine->epoll, &event, 1, -1);
         if (num < 0) switch (errno) {
         case EINTR:
             continue;
+        case EPOLLHUP:
+            return false;
         default:
             return false;
         }
+
+        engine_event_handler_t *handler = event.data.ptr;
+
+        handler->callback(handler->descriptor, handler->context);
     }
 
     return true;
@@ -107,10 +113,10 @@ void engine_destroy(engine_t *engine)
     if (engine == nullptr)
         return;
 
-    if (not (engine->epoll < 0)) {
+    if (not (engine->epoll < 0))
         close(engine->epoll);
 
-    while (true) {
+    loop {
         engine_event_handler_t *handler = engine->handlers_list;
 
         if (handler == nullptr)
