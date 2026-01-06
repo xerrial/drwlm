@@ -5,7 +5,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 #include <daemon/signal.h>
-#include <logging.h>
+#include <common/utils.h>
+#include <common/logging.h>
 
 #include <iso646.h>
 #include <errno.h>
@@ -23,7 +24,7 @@ static void signal_action_handler(int signal)
 
 signal_context_t *signal_handling_init()
 {
-    signal_context_t *context = calloc(1, sizeof(signal_context_t));
+    signal_context_t *context = allocate(signal_context_t);
     if (context == nullptr)
         return nullptr;
 

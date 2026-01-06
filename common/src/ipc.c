@@ -31,7 +31,7 @@ ipc_socket_t *ipc_start_listener(const char *path)
     if (path == nullptr)
         return nullptr;
 
-    ipc_socket_t *listener = calloc(1, sizeof(ipc_socket_t));
+    ipc_socket_t *listener = allocate(ipc_socket_t);
     if (listener == nullptr) {
         error("Failed to allocate ipc socket descriptor: %s", strerror(errno));
         return nullptr;
@@ -88,7 +88,7 @@ ipc_socket_t *ipc_start_connection(const char *path)
     if (path == nullptr)
         return nullptr;
 
-    ipc_socket_t *connection = calloc(1, sizeof(ipc_socket_t));
+    ipc_socket_t *connection = allocate(ipc_socket_t);
     if (connection == nullptr) {
         error("Failed to allocate ipc socket descriptor: %s", strerror(errno));
         return nullptr;

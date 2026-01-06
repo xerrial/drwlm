@@ -6,12 +6,11 @@
 //
 #include <daemon/context.h>
 #include <common/logging.h>
-
-#include <stdlib.h>
+#include <common/utils.h>
 
 daemon_context_t *daemon_context_create()
 {
-    daemon_context_t *context = calloc(1, sizeof(daemon_context_t));
+    daemon_context_t *context = allocate(daemon_context_t);
     if (context == nullptr)
         error("Failed to allocate context: %s", strerror(errno));
 

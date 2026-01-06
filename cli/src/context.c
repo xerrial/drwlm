@@ -6,12 +6,11 @@
 //
 #include <cli/context.h>
 #include <common/logging.h>
-
-#include <stdlib.h>
+#include <common/utils.h>
 
 cli_context_t *cli_context_create()
 {
-    cli_context_t *context = calloc(1, sizeof(cli_context_t));
+    cli_context_t *context = allocate(cli_context_t);
     if (context == nullptr)
         error("Failed to allocate context: %s", strerror(errno));
 

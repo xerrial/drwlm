@@ -9,8 +9,12 @@
 
 #pragma once
 
+#include <stdlib.h>
+
 #define packed __attribute__((packed))
 
 #define lengthof(array) (sizeof(array) / sizeof(array[0]))
+
+#define allocate(type) calloc(1, sizeof(type))
 
 #endif // !DRWLM_COMMON_UTILS_H

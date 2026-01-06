@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 #include <common/logging.h>
+#include <common/utils.h>
 #include <daemon/pidfile.h>
 
 #include <iso646.h>
@@ -15,12 +16,14 @@
 #include <string.h>
 #include <stdlib.h>
 
+typedef struct flock flock_t;
+
 pidfile_t *pidfile_open(const char *path)
 {
     if (path == nullptr)
         return nullptr;
 
-    pidfile_t *pidfile = calloc(1, sizeof(pidfile_t));
+    pidfile_t *pidfile = allocate(pidfile_t);
     if (pidfile == nullptr) {
         error("Failed to allocate pidfile descriptor: %s", strerror(errno));
         return nullptr;
@@ -41,7 +44,7 @@ pidfile_t *pidfile_open(const char *path)
         goto failure;
     }
 
-    const struct flock flock_descr = {
+    const flock_t flock_descr = {
         .l_type   = F_WRLCK,
         .l_whence = SEEK_SET,
         .l_start  = 0,
@@ -104,7 +107,7 @@ void pidfile_close(pidfile_t *pidfile)
         if (unlink(pidfile->path) < 0)
             error("Failed to unlink PID file '%s': %s", pidfile->path, strerror(errno));
 
-        const struct flock flock_descr = {
+        const flock_t flock_descr = {
             .l_type   = F_UNLCK,
             .l_whence = SEEK_SET,
             .l_start  = 0,

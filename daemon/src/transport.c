@@ -6,6 +6,7 @@
 //
 #include <daemon/transport.h>
 #include <common/logging.h>
+#include <common/utils.h>
 
 #include <stdlib.h>
 
@@ -56,7 +57,7 @@ transport_t *transport_init(const char *group_name)
     if (group_name == nullptr)
         return nullptr;
 
-    transport_t *context = calloc(1, sizeof(transport_t));
+    transport_t *context = allocate(transport_t);
     if (context == nullptr)
         return nullptr;
 

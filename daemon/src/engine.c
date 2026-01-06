@@ -7,6 +7,8 @@
 #include <daemon/engine.h>
 #include <common/utils.h>
 #include <common/logging.h>
+#include <common/utils.h>
+
 
 #include <iso646.h>
 #include <unistd.h>
@@ -15,9 +17,11 @@
 #include <string.h>
 #include <sys/epoll.h>
 
+typedef struct epoll_event epoll_event_t;
+
 engine_t *engine_create()
 {
-    engine_t *engine = calloc(1, sizeof(engine_t));
+    engine_t *engine = allocate(engine_t);
     if (engine == nullptr)
         return nullptr;
 
@@ -42,14 +46,14 @@ bool engine_register(engine_t *engine, int descriptor,
     if (engine == nullptr or callback == nullptr or descriptor < 0)
         return false;
 
-    engine_event_handler_t *handler = calloc(1, sizeof(engine_event_handler_t));
+    engine_event_handler_t *handler = allocate(engine_event_handler_t);
     if (handler == nullptr)
         return false;
 
     handler->callback = callback;
     handler->context  = context;
 
-    struct epoll_event event = { .events = EPOLLIN, .data.ptr = handler };
+    epoll_event_t event = { .events = EPOLLIN, .data.ptr = handler };
 
     int rv = epoll_ctl(engine->epoll, EPOLL_CTL_ADD, descriptor, &event);
     if (rv < 0) {
@@ -73,7 +77,7 @@ bool engine_start(engine_t *engine)
 
     engine->stop = false;
 
-    struct epoll_event event[1];
+    epoll_event_t event[1];
 
     while (not engine->stop) {
         int num = epoll_wait(engine->epoll, event, lengthof(event), -1);
