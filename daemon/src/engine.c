@@ -37,18 +37,32 @@ failure:
 }
 
 bool engine_register(engine_t *engine, int descriptor,
-                     engine_callback_t callback, void *data)
+                     engine_callback_t callback, void *context)
 {
     if (engine == nullptr or callback == nullptr or descriptor < 0)
         return false;
 
-    struct epoll_event event;
+    engine_event_handler_t *handler = calloc(1, sizeof(engine_event_handler_t));
+    if (handler == nullptr)
+        return false;
+
+    handler->callback = callback;
+    handler->context  = context;
+
+    struct epoll_event event = { .events = EPOLLIN, .data.ptr = handler };
 
     int rv = epoll_ctl(engine->epoll, EPOLL_CTL_ADD, descriptor, &event);
     if (rv < 0) {
-        return false;
+        goto failure;
     }
 
+    handler->next = engine->handlers_list;
+    engine->handlers_list = handler;
+
+    return true;
+
+failure:
+    free(handler);
     return false;
 }
 
@@ -91,6 +105,15 @@ void engine_destroy(engine_t *engine)
 
     if (not (engine->epoll < 0)) {
         close(engine->epoll);
+
+    while (true) {
+        engine_event_handler_t *handler = engine->handlers_list;
+
+        if (handler == nullptr)
+            break;
+
+        engine->handlers_list = handler->next;
+        free(handler);
     }
 
     free(engine);
