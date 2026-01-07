@@ -138,6 +138,11 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
+    if (not engine_start(context->engine)) {
+        error("Engine stopped due to failure");
+        goto failure;
+    }
+
     info("Distributed Read-Write Lock Manager exit");
 
     daemon_context_destroy(context);

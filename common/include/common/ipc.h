@@ -16,6 +16,10 @@
 
 #define IPC_MAX_PAYLOAD_LENGTH 254
 
+typedef enum {
+    REQUEST_LOCK
+} ipc_message_type;
+
 typedef packed struct {
     uint8_t type;
     uint8_t length;
