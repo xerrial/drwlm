@@ -152,18 +152,37 @@ failure:
     return nullptr;
 }
 
-bool ipc_send(ipc_connection_t *handle, ipc_message_t *message)
+bool ipc_send(ipc_connection_t *connection, ipc_message_t *message)
 {
-    if (handle == nullptr or message == nullptr)
+    if (connection == nullptr or message == nullptr)
         return false;
 
 retry:
-    int len = write(handle->socket, message, sizeof(ipc_message_t));
+    int len = write(connection->socket, message, sizeof(ipc_message_t));
     if (len < 0) switch (errno) {
     case EINTR:
         goto retry;
     default:
         error("Failed to write: %s", strerror(errno));
+        return false;
+    }
+
+    return true;
+}
+
+bool ipc_receive(ipc_connection_t *connection, ipc_message_t *message)
+{
+    if (connection == nullptr or message == nullptr)
+        return false;
+
+retry:
+    int len = read(connection->socket, message, sizeof(ipc_message_t));
+    if (len < 0) switch (errno)
+    {
+    case EINTR:
+        goto retry;
+    default:
+        error("Failed to read: %s", strerror(errno));
         return false;
     }
 

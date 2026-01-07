@@ -33,7 +33,8 @@ typedef ipc_socket_t ipc_connection_t;
 ipc_listener_t *ipc_start_listener(const char *path);
 ipc_connection_t *ipc_start_connection(const char *path);
 ipc_connection_t *ipc_accept(ipc_listener_t *listener);
-bool ipc_send(ipc_connection_t *handle, ipc_message_t *message);
+bool ipc_send(ipc_connection_t *connection, ipc_message_t *message);
+bool ipc_receive(ipc_connection_t *connection, ipc_message_t *message);
 void ipc_close(ipc_socket_t *handle);
 
 #endif // !DRWLM_COMMON_IPC_H
