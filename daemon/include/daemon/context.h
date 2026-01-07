@@ -26,7 +26,7 @@ typedef struct {
     /**
      * @brief IPC listener socket.
      */
-    ipc_socket_t *listener;
+    ipc_listener_t *listener;
 
     /**
      * @brief Internode transport handle.

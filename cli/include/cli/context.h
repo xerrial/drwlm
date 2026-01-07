@@ -18,7 +18,7 @@ typedef struct {
     /**
      * @brief IPC connection with daemon.
      */
-    ipc_socket_t *connection;
+    ipc_connection_t *connection;
 } cli_context_t;
 
 cli_context_t *cli_context_create();

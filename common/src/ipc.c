@@ -26,12 +26,12 @@ static bool make_addr(sockaddr_un_t *addr, const char *path)
     return true;
 }
 
-ipc_socket_t *ipc_start_listener(const char *path)
+ipc_listener_t *ipc_start_listener(const char *path)
 {
     if (path == nullptr)
         return nullptr;
 
-    ipc_socket_t *listener = allocate(ipc_socket_t);
+    ipc_listener_t *listener = allocate(ipc_listener_t);
     if (listener == nullptr) {
         error("Failed to allocate ipc socket descriptor: %s", strerror(errno));
         return nullptr;
@@ -83,12 +83,12 @@ failure:
     return nullptr;
 }
 
-ipc_socket_t *ipc_start_connection(const char *path)
+ipc_connection_t *ipc_start_connection(const char *path)
 {
     if (path == nullptr)
         return nullptr;
 
-    ipc_socket_t *connection = allocate(ipc_socket_t);
+    ipc_connection_t *connection = allocate(ipc_connection_t);
     if (connection == nullptr) {
         error("Failed to allocate ipc socket descriptor: %s", strerror(errno));
         return nullptr;
@@ -126,12 +126,12 @@ failure:
     return nullptr;
 }
 
-ipc_socket_t *ipc_accept(ipc_socket_t *listener)
+ipc_connection_t *ipc_accept(ipc_listener_t *listener)
 {
     if (listener == nullptr)
         return nullptr;
 
-    ipc_socket_t *connection = allocate(ipc_socket_t);
+    ipc_connection_t *connection = allocate(ipc_connection_t);
     if (connection == nullptr) {
         error("Failed to allocate ipc socket descriptor: %s", strerror(errno));
         return nullptr;
@@ -152,7 +152,7 @@ failure:
     return nullptr;
 }
 
-bool ipc_send(ipc_socket_t *handle, ipc_message_t *message)
+bool ipc_send(ipc_connection_t *handle, ipc_message_t *message)
 {
     if (handle == nullptr or message == nullptr)
         return false;
