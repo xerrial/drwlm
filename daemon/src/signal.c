@@ -19,17 +19,28 @@ static void signal_action_handler(int signal)
 {
     int old_errno = errno;
 
+    // TODO: Actual handling.
+
     errno = old_errno;
 }
 
-signal_context_t *signal_handling_init()
+/**
+ * @todo: Is there any point to use dynamic memory if only single instance
+ *        allowed? Just store signal_handler_t statically.
+ */
+signal_handler_t *signal_handling_init()
 {
-    signal_context_t *context = allocate(signal_context_t);
-    if (context == nullptr)
+    if (signal_intake != -1) {
+        error("Cannot init already initialized signal handling");
+        return nullptr;
+    }
+
+    signal_handler_t *handler = allocate(signal_handler_t);
+    if (handler == nullptr)
         return nullptr;
 
-    context->intake  = -1;
-    context->outtake = -1;
+    handler->intake  = -1;
+    handler->outtake = -1;
 
     int pipedes[2];
     if (pipe(pipedes) < 0) {
@@ -38,31 +49,36 @@ signal_context_t *signal_handling_init()
     }
 
     signal_intake    = pipedes[1];
-    context->intake  = pipedes[1];
-    context->outtake = pipedes[0];
+    handler->intake  = pipedes[1];
+    handler->outtake = pipedes[0];
 
     // TODO: Actual signal handling setup.
 
-    return context;
+    return handler;
 
 failure:
-    signal_handling_deinit(context);
+    signal_handling_deinit(handler);
     return nullptr;
 }
 
-void *signal_handling_deinit(signal_context_t *context)
+int signal_handler_descriptor(signal_handler_t *handler)
 {
-    if (context == nullptr)
+    return handler == nullptr ? -1 : handler->outtake;
+}
+
+void signal_handling_deinit(signal_handler_t *handler)
+{
+    if (handler == nullptr)
         return;
 
     signal_intake = -1;
 
-    if (context->intake != -1 and close(context->intake) < 0)
+    if (handler->intake != -1 and close(handler->intake) < 0)
         error("Failed to close: %s", strerror(errno));
 
-    if (context->outtake != -1 and close(context->outtake) < 0)
+    if (handler->outtake != -1 and close(handler->outtake) < 0)
         error("Failed to close: %s", strerror(errno));
 
-    free(context);
+    free(handler);
 }
 

@@ -99,6 +99,22 @@ failure:
     return nullptr;
 }
 
+int transport_descriptor(transport_t *transport)
+{
+    if (transport == nullptr)
+        return -1;
+
+    int descriptor = -1;
+
+    cs_error_t rv = cpg_fd_get(transport->cpg, &descriptor);
+    if (rv != CS_OK) {
+        error("Failed to get CPG file descriptor: %s", cs_strerror(rv));
+        return -1;
+    }
+
+    return descriptor;
+}
+
 void transport_deinit(transport_t *context)
 {
     if (context == nullptr)

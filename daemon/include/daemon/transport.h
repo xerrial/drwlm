@@ -34,7 +34,8 @@ typedef struct
 } transport_t;
 
 transport_t *transport_init(const char *group_name);
-void transport_deinit(transport_t *context);
+int transport_descriptor(transport_t *transport);
+void transport_deinit(transport_t *transport);
 
 
 #endif // !DRWLM_DAEMON_COROSYNC_H

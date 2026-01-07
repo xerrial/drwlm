@@ -19,9 +19,10 @@ typedef struct {
      * @brief Read-end of selfpipe to receive signals.
      */
     int outtake;
-} signal_context_t;
+} signal_handler_t;
 
-signal_context_t *signal_handling_init();
-void *signal_handling_deinit(signal_context_t *context);
+signal_handler_t *signal_handling_init();
+int signal_handler_descriptor(signal_handler_t *handler);
+void signal_handling_deinit(signal_handler_t *handler);
 
 #endif // !DRWLM_DAEMON_SIGNAL_H
