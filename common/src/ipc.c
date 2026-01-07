@@ -189,6 +189,11 @@ retry:
     return true;
 }
 
+int ipc_socket_descriptor(ipc_socket_t *handle)
+{
+    return handle == nullptr ? -1 : handle->socket;
+}
+
 void ipc_close(ipc_socket_t *handle)
 {
     if (handle == nullptr)

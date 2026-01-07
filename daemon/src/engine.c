@@ -15,8 +15,42 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/epoll.h>
+#include <assert.h>
 
 typedef struct epoll_event epoll_event_t;
+
+static void engine_store_handler(engine_t *engine,
+                                 engine_event_handler_t *handler)
+{
+    assert(engine  != nullptr);
+    assert(handler != nullptr);
+
+    handler->prev = nullptr;
+    handler->next = engine->handlers_list;
+    engine->handlers_list = handler;
+}
+
+
+static void engine_discard_handler(engine_t *engine,
+                                   engine_event_handler_t *handler)
+{
+    assert(engine  != nullptr);
+    assert(handler != nullptr);
+
+    engine_event_handler_t *next = handler->next;
+    engine_event_handler_t *prev = handler->prev;
+
+    if (next != nullptr)
+        next->prev = prev;
+
+    if (prev != nullptr)
+        prev->next = next;
+
+    if (engine->handlers_list == handler)
+        engine->handlers_list = next;
+
+    free(handler);
+}
 
 engine_t *engine_create()
 {
@@ -60,13 +94,29 @@ bool engine_register(engine_t *engine, int descriptor,
         goto failure;
     }
 
-    handler->next = engine->handlers_list;
-    engine->handlers_list = handler;
-
+    engine_store_handler(engine, handler);
     return true;
 
 failure:
     free(handler);
+    return false;
+}
+
+static bool engine_unregister(engine_t *engine, engine_event_handler_t *handler)
+{
+    if (engine == nullptr or handler == nullptr)
+        return false;
+
+    int rv = epoll_ctl(engine->epoll, EPOLL_CTL_DEL, handler->descriptor, nullptr);
+    if (rv < 0) {
+        goto failure;
+    }
+
+    engine_discard_handler(engine, handler);
+    return true;
+
+failure:
+    engine_discard_handler(engine, handler);
     return false;
 }
 
@@ -84,15 +134,21 @@ bool engine_start(engine_t *engine)
         if (num < 0) switch (errno) {
         case EINTR:
             continue;
-        case EPOLLHUP:
-            return false;
         default:
             return false;
         }
 
         engine_event_handler_t *handler = event.data.ptr;
 
-        handler->callback(handler->descriptor, handler->context);
+        if (event.events & EPOLLIN) {
+
+            handler->callback(handler->descriptor, handler->context);
+        }
+        else if (event.events & (EPOLLHUP | EPOLLERR)) {
+            handler->callback(handler->descriptor, handler->context);
+
+            engine_unregister(engine, handler);
+        }
     }
 
     return true;
@@ -116,15 +172,8 @@ void engine_destroy(engine_t *engine)
     if (not (engine->epoll < 0))
         close(engine->epoll);
 
-    loop {
-        engine_event_handler_t *handler = engine->handlers_list;
-
-        if (handler == nullptr)
-            break;
-
-        engine->handlers_list = handler->next;
-        free(handler);
-    }
+    while (engine->handlers_list != nullptr)
+        engine_discard_handler(engine, engine->handlers_list);
 
     free(engine);
 }

@@ -9,7 +9,12 @@
 
 #pragma once
 
-typedef void (*engine_callback_t)(int descriptor, void *context);
+typedef enum {
+    NEWDATA,
+    HANGUP
+} engine_event_type_t;
+
+typedef void (*engine_callback_t)(engine_event_type_t type, void *context);
 
 typedef struct engine_event_handler {
     /**
@@ -31,6 +36,11 @@ typedef struct engine_event_handler {
      * @brief Next event descriptor in a list.
      */
     struct engine_event_handler *next;
+
+    /**
+     * @brief Previous event descriptor in a list.
+     */
+    struct engine_event_handler *prev;
 } engine_event_handler_t;
 
 typedef struct {
