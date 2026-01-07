@@ -126,6 +126,32 @@ failure:
     return nullptr;
 }
 
+ipc_socket_t *ipc_accept(ipc_socket_t *listener)
+{
+    if (listener == nullptr)
+        return nullptr;
+
+    ipc_socket_t *connection = allocate(ipc_socket_t);
+    if (connection == nullptr) {
+        error("Failed to allocate ipc socket descriptor: %s", strerror(errno));
+        return nullptr;
+    }
+
+    connection->socket = -1;
+
+    connection->socket = accept(listener->socket, nullptr, nullptr);
+    if (connection->socket < 0) {
+        error("Failed to accept connection: %s", strerror(errno));
+        goto failure;
+    }
+
+    return connection;
+
+failure:
+    ipc_close(connection);
+    return nullptr;
+}
+
 bool ipc_send(ipc_socket_t *handle, ipc_message_t *message)
 {
     if (handle == nullptr or message == nullptr)

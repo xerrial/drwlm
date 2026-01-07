@@ -29,6 +29,7 @@ typedef struct {
 
 ipc_socket_t *ipc_start_listener(const char *path);
 ipc_socket_t *ipc_start_connection(const char *path);
+ipc_socket_t *ipc_accept(ipc_socket_t *listener);
 bool ipc_send(ipc_socket_t *handle, ipc_message_t *message);
 void ipc_close(ipc_socket_t *handle);
 
