@@ -44,7 +44,7 @@ signal_handler_t *signal_handling_init()
 
     int pipedes[2];
     if (pipe(pipedes) < 0) {
-        error("Failed to pipe: %s", strerror(errno));
+        error("Failed to pipe: %s", strerrno);
         goto failure;
     }
 
@@ -74,10 +74,10 @@ void signal_handling_deinit(signal_handler_t *handler)
     signal_intake = -1;
 
     if (handler->intake != -1 and close(handler->intake) < 0)
-        error("Failed to close: %s", strerror(errno));
+        error("Failed to close: %s", strerrno);
 
     if (handler->outtake != -1 and close(handler->outtake) < 0)
-        error("Failed to close: %s", strerror(errno));
+        error("Failed to close: %s", strerrno);
 
     free(handler);
 }

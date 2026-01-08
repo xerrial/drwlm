@@ -10,6 +10,8 @@
 #pragma once
 
 #include <stdlib.h>
+#include <errno.h>
+#include <string.h>
 
 #define packed __attribute__((packed))
 
@@ -18,5 +20,7 @@
 #define lengthof(array) (sizeof(array) / sizeof(array[0]))
 
 #define allocate(type) calloc(1, sizeof(type))
+
+#define strerrno strerror(errno)
 
 #endif // !DRWLM_COMMON_UTILS_H

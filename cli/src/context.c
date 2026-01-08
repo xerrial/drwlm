@@ -12,7 +12,7 @@ cli_context_t *cli_context_create()
 {
     cli_context_t *context = allocate(cli_context_t);
     if (context == nullptr)
-        error("Failed to allocate context: %s", strerror(errno));
+        error("Failed to allocate context: %s", strerrno);
 
     return context;
 }

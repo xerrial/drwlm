@@ -55,17 +55,20 @@ static void engine_discard_handler(engine_t *engine,
 engine_t *engine_create()
 {
     engine_t *engine = allocate(engine_t);
-    if (engine == nullptr)
+    if (engine == nullptr) {
+        error("Failed to allocate engine descriptor: %s", strerrno);
         return nullptr;
+    }
 
     engine->epoll = -1;
 
     engine->epoll = epoll_create1(0);
     if (engine->epoll < 0) {
-        error("Failed to create epoll instace: %s", strerror(errno));
+        error("Failed to create epoll instace: %s", strerrno);
         goto failure;
     }
 
+    debug("Engine created");
     return engine;
 
 failure:
@@ -76,25 +79,31 @@ failure:
 bool engine_register(engine_t *engine, int descriptor,
                      engine_callback_t callback, void *context)
 {
-    if (engine == nullptr or callback == nullptr or descriptor < 0)
+    if (engine == nullptr or callback == nullptr or descriptor < 0) {
+        error("Invalid arguments");
         return false;
+    }
 
     engine_event_handler_t *handler = allocate(engine_event_handler_t);
-    if (handler == nullptr)
+    if (handler == nullptr) {
+        error("Failed to allocate event handler: %s", strerrno);
         return false;
+    }
 
     handler->descriptor = descriptor;
     handler->callback   = callback;
     handler->context    = context;
 
-    epoll_event_t event = { .events = EPOLLIN, .data.ptr = handler };
+    epoll_event_t event = { .events = EPOLLIN | EPOLLET, .data.ptr = handler };
 
     int rv = epoll_ctl(engine->epoll, EPOLL_CTL_ADD, descriptor, &event);
     if (rv < 0) {
+        error("epoll_ctl failed: %s", strerrno);
         goto failure;
     }
 
     engine_store_handler(engine, handler);
+    debug("Engine registered event handler: descriptor=%d", descriptor);
     return true;
 
 failure:
@@ -109,8 +118,11 @@ static bool engine_unregister(engine_t *engine, engine_event_handler_t *handler)
 
     int rv = epoll_ctl(engine->epoll, EPOLL_CTL_DEL, handler->descriptor, nullptr);
     if (rv < 0) {
+        error("epoll_ctl failed: %s", strerrno);
         goto failure;
     }
+
+    debug("Engine unregistered event handler: descriptor=%d", handler->descriptor);
 
     engine_discard_handler(engine, handler);
     return true;
@@ -122,34 +134,38 @@ failure:
 
 bool engine_start(engine_t *engine)
 {
-    if (engine == nullptr)
+    if (engine == nullptr) {
+        error("Invalid argument");
         return false;
+    }
+
+    debug("Engine starts handling incoming events");
 
     engine->stop = false;
 
-    epoll_event_t event;
-
     while (not engine->stop) {
+        epoll_event_t event;
         int num = epoll_wait(engine->epoll, &event, 1, -1);
         if (num < 0) switch (errno) {
         case EINTR:
             continue;
         default:
+            error("epoll_wait failed: %s", strerrno);
             return false;
         }
 
         engine_event_handler_t *handler = event.data.ptr;
 
         if (event.events & EPOLLIN) {
-
-            handler->callback(handler->descriptor, handler->context);
+            handler->callback(NEWDATA, handler->context);
         }
         else if (event.events & (EPOLLHUP | EPOLLERR)) {
-            handler->callback(handler->descriptor, handler->context);
-
+            handler->callback(HANGUP, handler->context);
             engine_unregister(engine, handler);
         }
     }
+
+    debug("Engine stops handling incoming events");
 
     return true;
 }
@@ -160,6 +176,8 @@ bool engine_stop(engine_t *engine)
         return false;
 
     engine->stop = true;
+
+    debug("Engine is set to stop");
 
     return true;
 }
@@ -176,4 +194,6 @@ void engine_destroy(engine_t *engine)
         engine_discard_handler(engine, engine->handlers_list);
 
     free(engine);
+
+    debug("Engine destroyed");
 }

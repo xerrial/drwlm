@@ -12,7 +12,7 @@ daemon_context_t *daemon_context_create()
 {
     daemon_context_t *context = allocate(daemon_context_t);
     if (context == nullptr)
-        error("Failed to allocate context: %s", strerror(errno));
+        error("Failed to allocate context: %s", strerrno);
 
     return context;
 }

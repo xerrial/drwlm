@@ -11,7 +11,7 @@
 
 #include <common/logging.h>
 
-static int log_mask = LOG_UPTO(LOG_WARNING);
+static int log_mask = LOG_UPTO(LOG_DEBUG);
 static bool log_is_detached = false;
 
 void log_startup(const char *proc)

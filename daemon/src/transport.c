@@ -71,7 +71,7 @@ transport_t *transport_init(const char *group_name)
 
     rv = cpg_model_initialize(&context->cpg, model, model_data, nullptr);
     if (rv != CS_OK) {
-        error("Failed to initialize cpg_model: %s: %s", cs_strerror(rv), strerror(errno));
+        error("Failed to initialize cpg_model: %s: %s", cs_strerror(rv), strerrno);
         goto failure;
     }
 
@@ -82,13 +82,13 @@ transport_t *transport_init(const char *group_name)
 
     rv = cpg_join(context->cpg, &name);
     if (rv != CS_OK) {
-        error("Failed to join cpg: %s: %s", cs_strerror(rv), strerror(errno));
+        error("Failed to join cpg: %s: %s", cs_strerror(rv), strerrno);
         goto failure;
     }
 
     rv = cpg_local_get(context->cpg, &context->own_id);
     if (rv != CS_OK) {
-        error("Failed to get local id: %s: %s", cs_strerror(rv), strerror(errno));
+        error("Failed to get local id: %s: %s", cs_strerror(rv), strerrno);
         goto failure;
     }
 

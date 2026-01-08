@@ -55,11 +55,15 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
-    context->connection = ipc_start_connection(socket_path);
+    printf("Starting connection\n");
+
+    context->connection = ipc_create_connection(socket_path);
     if (context->connection == nullptr) {
         error("Failed to connect to daemon");
         goto failure;
     }
+
+    printf("Sending message\n");
 
     ipc_message_t message = {
         .type   = REQUEST_LOCK,

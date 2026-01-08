@@ -20,7 +20,8 @@ typedef enum {
     REQUEST_LOCK
 } ipc_message_type;
 
-typedef packed struct {
+// TODO: Must be packed, but I got tired of warnings.
+typedef struct {
     uint8_t type;
     uint8_t length;
     uint8_t payload[IPC_MAX_PAYLOAD_LENGTH];
@@ -34,11 +35,11 @@ typedef struct {
 typedef ipc_socket_t ipc_listener_t;
 typedef ipc_socket_t ipc_connection_t;
 
-ipc_listener_t *ipc_start_listener(const char *path);
-ipc_connection_t *ipc_start_connection(const char *path);
+ipc_listener_t *ipc_create_listener(const char *path);
+ipc_connection_t *ipc_create_connection(const char *path);
 ipc_connection_t *ipc_accept(ipc_listener_t *listener);
 bool ipc_send(ipc_connection_t *connection, ipc_message_t *message);
-bool ipc_receive(ipc_connection_t *connection, ipc_message_t *message);
+int ipc_receive(ipc_connection_t *connection, ipc_message_t *message);
 int ipc_socket_descriptor(ipc_socket_t *handle);
 void ipc_close(ipc_socket_t *handle);
 

@@ -26,14 +26,16 @@ static bool make_addr(sockaddr_un_t *addr, const char *path)
     return true;
 }
 
-ipc_listener_t *ipc_start_listener(const char *path)
+ipc_listener_t *ipc_create_listener(const char *path)
 {
-    if (path == nullptr)
+    if (path == nullptr) {
+        error("Invalid arguments");
         return nullptr;
+    }
 
     ipc_listener_t *listener = allocate(ipc_listener_t);
     if (listener == nullptr) {
-        error("Failed to allocate ipc socket descriptor: %s", strerror(errno));
+        error("Failed to allocate ipc socket descriptor: %s", strerrno);
         return nullptr;
     }
 
@@ -42,7 +44,7 @@ ipc_listener_t *ipc_start_listener(const char *path)
 
     listener->path = strdup(path);
     if (listener->path == nullptr) {
-        error("Failed to strdup: %s", strerror(errno));
+        error("Failed to strdup: %s", strerrno);
         goto failure;
     }
 
@@ -50,13 +52,13 @@ ipc_listener_t *ipc_start_listener(const char *path)
     case ENOENT:
         break;
     default:
-        error("Failed to unlink stale socket '%s': %s", path, strerror(errno));
+        error("Failed to unlink stale socket '%s': %s", path, strerrno);
         goto failure;
     }
 
     listener->socket = socket(AF_UNIX, SOCK_SEQPACKET, 0);
     if (listener->socket < 0) {
-        error("Failed to create socket: %s", strerror(errno));
+        error("Failed to create socket: %s", strerrno);
         goto failure;
     }
 
@@ -67,14 +69,16 @@ ipc_listener_t *ipc_start_listener(const char *path)
     }
 
     if (bind(listener->socket, (sockaddr_t *)&addr, sizeof(addr)) < 0) {
-        error("Failed to bind: %s", strerror(errno));
+        error("Failed to bind: %s", strerrno);
         goto failure;
     }
 
     if (listen(listener->socket, 1) < 0) {
-        error("Failed to listen: %s", strerror(errno));
+        error("Failed to listen: %s", strerrno);
         goto failure;
     }
+
+    debug("Created IPC listener: descriptor=%d", listener->socket);
 
     return listener;
 
@@ -83,14 +87,16 @@ failure:
     return nullptr;
 }
 
-ipc_connection_t *ipc_start_connection(const char *path)
+ipc_connection_t *ipc_create_connection(const char *path)
 {
-    if (path == nullptr)
+    if (path == nullptr) {
+        error("Invalid arguments");
         return nullptr;
+    }
 
     ipc_connection_t *connection = allocate(ipc_connection_t);
     if (connection == nullptr) {
-        error("Failed to allocate ipc socket descriptor: %s", strerror(errno));
+        error("Failed to allocate ipc socket descriptor: %s", strerrno);
         return nullptr;
     }
 
@@ -99,7 +105,7 @@ ipc_connection_t *ipc_start_connection(const char *path)
 
     connection->socket = socket(AF_UNIX, SOCK_SEQPACKET, 0);
     if (connection->socket < 0) {
-        error("Failed to connect to '%s': %s", path, strerror(errno));
+        error("Failed to connect to '%s': %s", path, strerrno);
         goto failure;
     }
 
@@ -115,9 +121,11 @@ retry:
     case EINTR:
         goto retry;
     default:
-        error("Failed to connect socket: %s", strerror(errno));
+        error("Failed to connect socket: %s", strerrno);
         goto failure;
     }
+
+    debug("Created IPC connection: descriptor=%d", connection->socket);
 
     return connection;
 
@@ -128,12 +136,14 @@ failure:
 
 ipc_connection_t *ipc_accept(ipc_listener_t *listener)
 {
-    if (listener == nullptr)
+    if (listener == nullptr) {
+        error("Invalid arguments");
         return nullptr;
+    }
 
     ipc_connection_t *connection = allocate(ipc_connection_t);
     if (connection == nullptr) {
-        error("Failed to allocate ipc socket descriptor: %s", strerror(errno));
+        error("Failed to allocate ipc socket descriptor: %s", strerrno);
         return nullptr;
     }
 
@@ -141,9 +151,11 @@ ipc_connection_t *ipc_accept(ipc_listener_t *listener)
 
     connection->socket = accept(listener->socket, nullptr, nullptr);
     if (connection->socket < 0) {
-        error("Failed to accept connection: %s", strerror(errno));
+        error("Failed to accept connection: %s", strerrno);
         goto failure;
     }
+
+    debug("IPC accepted new connection");
 
     return connection;
 
@@ -154,8 +166,10 @@ failure:
 
 bool ipc_send(ipc_connection_t *connection, ipc_message_t *message)
 {
-    if (connection == nullptr or message == nullptr)
+    if (connection == nullptr or message == nullptr) {
+        error("Invalid arguments");
         return false;
+    }
 
 retry:
     int len = write(connection->socket, message, sizeof(ipc_message_t));
@@ -163,17 +177,21 @@ retry:
     case EINTR:
         goto retry;
     default:
-        error("Failed to write: %s", strerror(errno));
+        error("Failed to write: %s", strerrno);
         return false;
     }
+
+    debug("Sent message over IPC");
 
     return true;
 }
 
-bool ipc_receive(ipc_connection_t *connection, ipc_message_t *message)
+int ipc_receive(ipc_connection_t *connection, ipc_message_t *message)
 {
-    if (connection == nullptr or message == nullptr)
-        return false;
+    if (connection == nullptr or message == nullptr) {
+        error("Invalid arguments");
+        return -1;
+    }
 
 retry:
     int len = read(connection->socket, message, sizeof(ipc_message_t));
@@ -182,11 +200,23 @@ retry:
     case EINTR:
         goto retry;
     default:
-        error("Failed to read: %s", strerror(errno));
-        return false;
+        error("Failed to read: %s", strerrno);
+        return -1;
     }
 
-    return true;
+    if (len == 0) {
+        debug("Tried to receive message over IPC, but there was nothing to receive");
+        return 0;
+    }
+
+    if (len != sizeof(ipc_message_t)) {
+        error("Unexpected partial read");
+        return -1;
+    }
+
+    debug("Received message over IPC");
+
+    return len;
 }
 
 int ipc_socket_descriptor(ipc_socket_t *handle)
@@ -199,12 +229,14 @@ void ipc_close(ipc_socket_t *handle)
     if (handle == nullptr)
         return;
 
+    debug("Closing IPC socket: descriptor=%d", handle->socket);
+
     if (not (handle->socket < 0)) {
         if (close(handle->socket) < 0)
-            error("Failed to close socket '%s': %s", handle->path, strerror(errno));
+            error("Failed to close socket '%s': %s", handle->path, strerrno);
 
         if (handle->path != nullptr and unlink(handle->path) < 0)
-            error("Failed to unlink '%s': %s", handle->path, strerror(errno));
+            error("Failed to unlink '%s': %s", handle->path, strerrno);
     }
 
     free((void *)handle->path);

@@ -15,63 +15,11 @@
 #include <common/ipc.h>
 #include <daemon/pidfile.h>
 #include <daemon/context.h>
+#include <daemon/handlers.h>
 
 static const char usage[] = "Usage: drwlmd [-f] [-h]\n"
                             "  -f    run in foreground\n"
                             "  -h    show this help\n";
-
-void incoming_ipc_message_handler(engine_event_type_t type, void *context)
-{
-    ipc_connection_t *connection = context;
-
-    if (type == NEWDATA) {
-        ipc_message_t message;
-
-        if (not ipc_receive(connection, &message)) {
-            error("Failed to receive message; closing connection");
-            ipc_close(connection);
-        }
-
-        // TODO: Actual message handling.
-        debug("Received message: type=%u, length=%u", message.type, message.length);
-
-        return;
-    }
-    else if (type == HANGUP)
-    {
-        ipc_close(connection);
-        return;
-    }
-}
-
-void incoming_ipc_connection_handler(engine_event_type_t type, void *context)
-{
-    ipc_listener_t *listener = ((daemon_context_t *)context)->listener;
-    engine_t       *engine   = ((daemon_context_t *)context)->engine;
-
-    if (type == NEWDATA) {
-        ipc_connection_t *connection = ipc_accept(listener);
-        if (connection == nullptr) {
-            error("Failed to handle new ipc connection");
-            return;
-        }
-
-        bool rv = engine_register(engine, ipc_socket_descriptor(connection),
-                                incoming_ipc_message_handler, connection);
-        if (not rv) {
-            error("Failed to register handler");
-            ipc_close(connection);
-            return;
-        }
-
-        return;
-    }
-    else if (type == HANGUP) {
-        critical("Unexpected listener hangup");
-        engine_stop(engine);
-        return;
-    }
-}
 
 int main(int argc, char *argv[])
 {
@@ -120,21 +68,31 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
-    context->listener = ipc_start_listener(socket_path);
+    context->listener = ipc_create_listener(socket_path);
     if (context->listener == nullptr) {
         error("Failed to start server");
         goto failure;
     }
 
-    context->transport = transport_init(lockspace_name);
-    if (context->transport == nullptr) {
-        error("Failed to init transport");
-        goto failure;
-    }
+    // TODO: Commented out for debug purposes.
+    // context->transport = transport_init(lockspace_name);
+    // if (context->transport == nullptr) {
+    //     error("Failed to init transport");
+    //     goto failure;
+    // }
 
     context->engine = engine_create();
     if (context->engine == nullptr) {
         error("Failed to init engine");
+        goto failure;
+    }
+
+    if (not engine_register(context->engine,
+                            ipc_socket_descriptor(context->listener),
+                            incoming_ipc_connection_handler,
+                            context))
+    {
+        error("Failed to register listener to engine");
         goto failure;
     }
 
