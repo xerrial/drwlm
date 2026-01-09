@@ -12,6 +12,8 @@
 
 #include <common/defs.h>
 #include <common/logging.h>
+#include <common/logging/console.h>
+#include <common/logging/syslog.h>
 #include <common/ipc.h>
 #include <daemon/pidfile.h>
 #include <daemon/context.h>
@@ -41,6 +43,8 @@ int main(int argc, char *argv[])
     }
 
     log_startup(basename(argv[0]));
+    log_attach(&log_console_backend);
+    log_attach(&log_syslog_backend);
 
     daemon_context_t *context = daemon_context_create();
     if (context == nullptr) {
@@ -59,7 +63,7 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
-    log_detach();
+    log_detach(&log_console_backend);
 
     info("Distributed Read-Write Lock Manager has started");
 

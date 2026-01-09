@@ -5,6 +5,8 @@ add_library(drwlm-common STATIC)
 target_sources(drwlm-common PRIVATE
     src/ipc.c
     src/logging.c
+    src/logging/console.c
+    src/logging/syslog.c
     src/lock.c
 )
 

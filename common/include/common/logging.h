@@ -13,6 +13,9 @@
 #include <string.h>
 #include <syslog.h>
 
+typedef struct log_backend     log_backend_t;
+typedef struct log_backend_ops log_backend_ops_t;
+
 typedef enum {
     EMERGENCY = LOG_EMERG,
     ALERT     = LOG_ALERT,
@@ -24,9 +27,28 @@ typedef enum {
     DEBUG     = LOG_DEBUG
 } log_severity_t;
 
+typedef void (*log_initialize_fn_t)(const char *proc);
+typedef void (*log_write_fn_t)(log_severity_t severity, const char *fmt, ...);
+typedef void (*log_finalize_fn_t)(void);
+
+struct log_backend_ops
+{
+    log_initialize_fn_t initialize;
+    log_write_fn_t write;
+    log_finalize_fn_t finalize;
+};
+
+struct log_backend {
+    const char *name;
+    log_backend_ops_t handlers;
+    log_backend_t *prev;
+    log_backend_t *next;
+};
+
 void log_startup(const char *proc);
 void log_set_mask(int mask);
-void log_detach(void);
+void log_attach(log_backend_t *backend);
+void log_detach(log_backend_t *backend);
 
 void __log(log_severity_t severity, const char *fmt, ...);
 
