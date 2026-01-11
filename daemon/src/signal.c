@@ -13,7 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 
-static int signal_intake = -1;
+static signal_handler_t signal_handler = { .intake = -1, .outtake = -1 };
 
 static void signal_action_handler(int signal)
 {
@@ -24,23 +24,12 @@ static void signal_action_handler(int signal)
     errno = old_errno;
 }
 
-/**
- * @todo: Is there any point to use dynamic memory if only single instance
- *        allowed? Just store signal_handler_t statically.
- */
 signal_handler_t *signal_handling_init()
 {
-    if (signal_intake != -1) {
+    if (signal_handler.intake != -1) {
         error("Cannot init already initialized signal handling");
         return nullptr;
     }
-
-    signal_handler_t *handler = allocate(signal_handler_t);
-    if (handler == nullptr)
-        return nullptr;
-
-    handler->intake  = -1;
-    handler->outtake = -1;
 
     int pipedes[2];
     if (pipe(pipedes) < 0) {
@@ -48,16 +37,15 @@ signal_handler_t *signal_handling_init()
         goto failure;
     }
 
-    signal_intake    = pipedes[1];
-    handler->intake  = pipedes[1];
-    handler->outtake = pipedes[0];
+    signal_handler.intake  = pipedes[1];
+    signal_handler.outtake = pipedes[0];
 
     // TODO: Actual signal handling setup.
 
-    return handler;
+    return &signal_handler;
 
 failure:
-    signal_handling_deinit(handler);
+    signal_handling_deinit(&signal_handler);
     return nullptr;
 }
 
@@ -70,8 +58,6 @@ void signal_handling_deinit(signal_handler_t *handler)
 {
     if (handler == nullptr)
         return;
-
-    signal_intake = -1;
 
     if (handler->intake != -1 and close(handler->intake) < 0)
         error("Failed to close: %s", strerrno);
