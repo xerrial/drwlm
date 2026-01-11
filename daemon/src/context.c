@@ -8,16 +8,14 @@
 #include <common/logging.h>
 #include <common/utils.h>
 
-daemon_context_t *daemon_context_create()
-{
-    daemon_context_t *context = allocate(daemon_context_t);
-    if (context == nullptr)
-        error("Failed to allocate context: %s", strerrno);
+daemon_context_t context = {
+    .pidfile   = nullptr,
+    .listener  = nullptr,
+    .transport = nullptr,
+    .engine    = nullptr
+};
 
-    return context;
-}
-
-void daemon_context_destroy(daemon_context_t *context)
+void daemon_context_cleanup(daemon_context_t *context)
 {
     if (context == nullptr)
         return;
@@ -26,6 +24,4 @@ void daemon_context_destroy(daemon_context_t *context)
     transport_deinit(context->transport);
     ipc_close(context->listener);
     pidfile_close(context->pidfile);
-    free(context);
 }
-

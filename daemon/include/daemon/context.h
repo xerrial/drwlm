@@ -39,8 +39,8 @@ typedef struct {
     engine_t *engine;
 } daemon_context_t;
 
+extern daemon_context_t context;
 
-daemon_context_t *daemon_context_create();
-void daemon_context_destroy(daemon_context_t *context);
+void daemon_context_cleanup(daemon_context_t *context);
 
 #endif // !DRWLM_DAEMON_CONTEXT_H
