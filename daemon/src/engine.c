@@ -77,7 +77,7 @@ failure:
 }
 
 bool engine_register(engine_t *engine, int descriptor,
-                     engine_callback_t callback, void *context)
+                     engine_callback_fn *callback, void *context)
 {
     if (engine == nullptr or callback == nullptr or descriptor < 0) {
         error("Invalid arguments");

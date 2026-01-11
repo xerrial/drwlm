@@ -14,7 +14,7 @@ typedef enum {
     HANGUP
 } engine_event_type_t;
 
-typedef void (*engine_callback_t)(engine_event_type_t type, void *context);
+typedef void engine_callback_fn(engine_event_type_t type, void *context);
 
 typedef struct engine_event_handler {
     /**
@@ -25,7 +25,7 @@ typedef struct engine_event_handler {
     /**
      * @brief Function to be called on event.
      */
-    engine_callback_t callback;
+    engine_callback_fn *callback;
 
     /**
      * @brief Context to pass into the callback.
@@ -62,7 +62,7 @@ typedef struct {
 
 engine_t *engine_create();
 bool engine_register(engine_t *engine, int descriptor,
-                     engine_callback_t callback, void *context);
+                     engine_callback_fn *callback, void *context);
 bool engine_start(engine_t *engine);
 bool engine_stop(engine_t *engine);
 void engine_destroy(engine_t *engine);
