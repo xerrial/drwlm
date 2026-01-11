@@ -55,8 +55,8 @@ void incoming_ipc_connection_handler(engine_event_type_t type, void *context)
             return;
         }
 
-        bool rv = engine_register(engine, ipc_socket_descriptor(connection),
-                                  incoming_ipc_message_handler, connection);
+        bool rv = engine_follow(engine, ipc_socket_descriptor(connection),
+                                incoming_ipc_message_handler, connection);
         if (not rv) {
             error("Failed to register handler");
             ipc_close(connection);

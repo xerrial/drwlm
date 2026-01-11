@@ -85,10 +85,10 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
-    if (not engine_register(context.engine,
-                            ipc_socket_descriptor(context.listener),
-                            incoming_ipc_connection_handler,
-                            &context))
+    if (not engine_follow(context.engine,
+                          ipc_socket_descriptor(context.listener),
+                          incoming_ipc_connection_handler,
+                          &context))
     {
         error("Failed to register listener to engine");
         goto failure;

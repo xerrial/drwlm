@@ -61,8 +61,8 @@ typedef struct {
 } engine_t;
 
 engine_t *engine_create();
-bool engine_register(engine_t *engine, int descriptor,
-                     engine_callback_fn *callback, void *context);
+bool engine_follow(engine_t *engine, int descriptor,
+                   engine_callback_fn *callback, void *context);
 bool engine_start(engine_t *engine);
 bool engine_stop(engine_t *engine);
 void engine_destroy(engine_t *engine);

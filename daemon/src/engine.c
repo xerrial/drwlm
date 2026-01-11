@@ -76,8 +76,8 @@ failure:
     return nullptr;
 }
 
-bool engine_register(engine_t *engine, int descriptor,
-                     engine_callback_fn *callback, void *context)
+bool engine_follow(engine_t *engine, int descriptor,
+                   engine_callback_fn *callback, void *context)
 {
     if (engine == nullptr or callback == nullptr or descriptor < 0) {
         error("Invalid arguments");
@@ -111,7 +111,7 @@ failure:
     return false;
 }
 
-static bool engine_unregister(engine_t *engine, engine_event_handler_t *handler)
+static bool engine_unfollow(engine_t *engine, engine_event_handler_t *handler)
 {
     if (engine == nullptr or handler == nullptr)
         return false;
@@ -161,7 +161,7 @@ bool engine_start(engine_t *engine)
         }
         else if (event.events & (EPOLLHUP | EPOLLERR)) {
             handler->callback(HANGUP, handler->context);
-            engine_unregister(engine, handler);
+            engine_unfollow(engine, handler);
         }
     }
 
