@@ -12,8 +12,8 @@
 #include <common/logging.h>
 #include <common/logging/console.h>
 
-static const char *log_proc = nullptr;
-static int log_mask = LOG_UPTO(LOG_DEBUG);
+static const char    *log_proc     = nullptr;
+static int            log_mask     = LOG_UPTO(LOG_DEBUG);
 static log_backend_t *log_backends = nullptr;
 
 void log_startup(const char *proc)
@@ -43,13 +43,16 @@ void log_attach(log_backend_t *backend)
 
 void log_detach(log_backend_t *backend)
 {
-    if (backend->next != nullptr)
-        backend->next->prev = backend->prev;
+    log_backend_t *next = backend->next;
+    log_backend_t *prev = backend->prev;
 
-    if (backend->prev != nullptr)
-        backend->prev->next = backend->next;
+    if (next != nullptr)
+        next->prev = prev;
+
+    if (prev != nullptr)
+        prev->next = next;
     else
-        log_backends = backend->next;
+        log_backends = next;
 
     backend->prev = nullptr;
     backend->next = nullptr;

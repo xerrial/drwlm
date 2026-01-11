@@ -27,15 +27,15 @@ typedef enum {
     DEBUG     = LOG_DEBUG
 } log_severity_t;
 
-typedef void (*log_initialize_fn_t)(const char *proc);
-typedef void (*log_write_fn_t)(log_severity_t severity, const char *fmt, ...);
-typedef void (*log_finalize_fn_t)(void);
+typedef void log_initialize_fn(const char *proc);
+typedef void log_write_fn(log_severity_t severity, const char *fmt, ...);
+typedef void log_finalize_fn(void);
 
 struct log_backend_ops
 {
-    log_initialize_fn_t initialize;
-    log_write_fn_t write;
-    log_finalize_fn_t finalize;
+    log_initialize_fn *initialize;
+    log_write_fn      *write;
+    log_finalize_fn   *finalize;
 };
 
 struct log_backend {
