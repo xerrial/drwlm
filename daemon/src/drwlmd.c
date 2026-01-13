@@ -52,12 +52,14 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
-    if (daemonize and daemon(0, 0) < 0) {
-        error("Cannot daemonize");
-        goto failure;
-    }
+    if (daemonize) {
+        if (daemon(0, 0) < 0) {
+            error("Cannot daemonize");
+            goto failure;
+        }
 
-    log_detach(&log_console_backend);
+        log_detach(&log_console_backend);
+    }
 
     info("Distributed Read-Write Lock Manager has started");
 
