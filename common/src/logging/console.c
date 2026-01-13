@@ -9,7 +9,12 @@
 
 #include <common/logging/console.h>
 
-static void log_console_write(log_severity_t severity, const char *fmt, ...);
+static void log_console_write(log_severity_t severity,
+                              const char    *fmt,
+                              va_list        args)
+{
+    vfprintf(stderr, fmt, args);
+}
 
 log_backend_t log_console_backend = {
     .name     = "syslog",
@@ -19,12 +24,3 @@ log_backend_t log_console_backend = {
         .finalize   = nullptr
     }
 };
-
-static void log_console_write(log_severity_t severity, const char *fmt, ...)
-{
-    va_list args;
-
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-}

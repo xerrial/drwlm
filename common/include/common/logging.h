@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <string.h>
 #include <syslog.h>
+#include <stdarg.h>
 
 typedef struct log_backend     log_backend_t;
 typedef struct log_backend_ops log_backend_ops_t;
@@ -28,7 +29,7 @@ typedef enum {
 } log_severity_t;
 
 typedef void log_initialize_fn(const char *proc);
-typedef void log_write_fn(log_severity_t severity, const char *fmt, ...);
+typedef void log_write_fn(log_severity_t severity, const char *fmt, va_list vargs);
 typedef void log_finalize_fn(void);
 
 struct log_backend_ops
