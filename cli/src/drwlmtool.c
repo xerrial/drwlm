@@ -8,8 +8,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include <common/logging.h>
+#include <common/logging/console.h>
 #include <common/defs.h>
 #include <common/lock.h>
 #include <cli/context.h>
@@ -47,7 +49,10 @@ int main(int argc, char *argv[])
         }
     }
 
-    printf("Got mode '%s'\n", rwlock_mode_to_str(mode));
+    log_startup(basename(argv[0]));
+    log_attach(&log_console_backend);
+
+    debug("Got mode '%s'", rwlock_mode_to_str(mode));
 
     cli_context_t *context = cli_context_create();
     if (context == nullptr) {
@@ -55,7 +60,7 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
-    printf("Starting connection\n");
+    debug("Starting connection");
 
     context->connection = ipc_create_connection(socket_path);
     if (context->connection == nullptr) {
@@ -63,7 +68,7 @@ int main(int argc, char *argv[])
         goto failure;
     }
 
-    printf("Sending message\n");
+    debug("Sending message");
 
     ipc_message_t message = {
         .type   = REQUEST_LOCK,
