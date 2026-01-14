@@ -1,30 +1,212 @@
 #!/bin/bash
 
+SCRIPT=`basename $0`
+OSNAME=`uname -s`
+CMAKE=`which cmake`
+CTEST=`which ctest`
+
+source ./build.conf.dist
+
+if [ -f ./build.conf ]; then
+    source ./build.conf
+fi
+
 BUILD_DIR=build
 BUILD_TYPE=Debug
 
-if [ $# -eq 0 ]; then
-    echo "Missing command" 1>&2
+case "${OSNAME}" in
+    Linux)
+        NPROC=`nproc --all`
+        ;;
+    FreeBSD|Darwin)
+        NPROC=`sysctl -n hw.ncpu`
+        ;;
+    *)
+        NPROC=1
+esac
+
+_missing_command() {
+    echo "Missing command. Use -h or --help for help" 1>&2
     exit 1
+}
+
+_invalid_command() {
+    echo "Invalid command: $1. Use -h or --help for help" 1>&2
+    exit 1
+}
+
+_invalid_option() {
+    echo "Invalid option: $1. Use -h or --help for help" 1>&2
+    exit 1
+}
+
+_require_argument() {
+    if [ $2 -eq 0 ]; then
+        echo "Option requires an argument: $1" 1>&2
+        exit 1
+    fi
+}
+
+_usage() {
+    echo "Usage:"
+    echo "    ${SCRIPT} [global options] <command> [command options]"
+    echo
+    echo "Global options:"
+    echo "    -h, --help         Print this help and exit"
+    echo "    -b, --build <DIR>  Set build directory"
+    echo "    -j, --jobs <N>     Set number of parallel jobs"
+    echo
+    echo "Commands:"
+    echo "    configure  Configure build settings"
+    echo "    build      Build the entire project"
+    echo "    test       Perform unit tests"
+    echo "    clean      Delete all files that are created by building the program"
+    echo "    distclean  Delete all files that are created by configuring or building the program"
+    echo
+    echo "Configure options:"
+    echo "    General:"
+    echo "        --prefix <PATH>  Set installation prefix (default=${PREFIX})"
+    echo "        --release        Release build"
+    echo "        --debug          Debug build"
+    echo "        --verbose        Generate verbose Makefiles"
+    echo
+    echo "Defaults:"
+    echo "    Build directory: ${BUILD_DIR}"
+    echo "    Build type:      ${BUILD_TYPE}"
+    echo "    Number of jobs:  ${NPROC}"
+}
+
+_configure() {
+    while [ $# -gt 0 ]; do
+        OPTION=$1
+        shift
+
+        case "$OPTION" in
+            --prefix)
+                _require_argument $OPTION $#
+                PREFIX="$1"
+                shift
+                ;;
+            --debug)
+                BUILD_TYPE=Debug
+                ;;
+            --release)
+                BUILD_TYPE=Release
+                ;;
+            --verbose)
+                VERBOSE=ON
+                ;;
+            *)
+                _invalid_option ${OPTION}
+                ;;
+        esac
+    done
+
+    FEATURES=""
+    if [ "${VERBOSE}" == "ON" ]; then
+        FEATURES="${FEATURES} -DCMAKE_VERBOSE_MAKEFILE=TRUE"
+    fi
+
+    ${CMAKE} -B ${BUILD_DIR} \
+        -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+        ${FEATURES}
+}
+
+_build() {
+    ${CMAKE} --build ${BUILD_DIR} --parallel ${NPROC}
+}
+
+_test() {
+    CTEST_ARGS=""
+
+    while [ $# -gt 0 ]; do
+        OPTION=$1
+        shift
+
+        case "$OPTION" in
+            --failed)
+                CTEST_ARGS="${CTEST_ARGS} --rerun-failed"
+                ;;
+            *)
+                _invalid_option ${OPTION}
+                ;;
+        esac
+    done
+
+    ${CTEST} --test-dir ${BUILD_DIR} --parallel ${NPROC} ${CTEST_ARGS}
+}
+
+_install() {
+    ${CMAKE} --build ${BUILD_DIR} --target install
+}
+
+_clean() {
+    ${CMAKE} --build ${BUILD_DIR} --target clean
+}
+
+_distclean()
+{
+    rm -rf ${BUILD_DIR}
+}
+
+while [ $# -gt 0 ]; do
+    OPTION=$1
+
+    STARTCH=`echo ${OPTION} | cut -c1-1`
+    if [ "${STARTCH}" != "-" ]; then
+        break
+    fi
+    shift
+
+    case "${OPTION}" in
+        -h|--help)
+            _usage
+            exit 0
+            ;;
+        -b|--build)
+            _require_argument ${OPTION} $#
+            BUILD_DIR=$1
+            shift
+            ;;
+        -j|--jobs)
+            _require_argument ${OPTION} $#
+            NPROC=$1
+            shift
+            ;;
+        *)
+            _invalid_option ${OPTION}
+            ;;
+    esac
+done
+
+if [ $# -eq 0 ]; then
+    _missing_command
 fi
 
 COMMAND=$1
 shift
 
-case "$COMMAND" in
+case "${COMMAND}" in
     configure)
-        cmake -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        _configure "$@"
         ;;
     build)
-        cmake --build ${BUILD_DIR}
+        _build "$@"
+        ;;
+    test)
+        _test "$@"
+        ;;
+    install)
+        _install "$@"
         ;;
     clean)
-        cmake --build ${BUILD_DIR} --target clean
+        _clean "$@"
         ;;
     distclean)
-        rm -rf ${BUILD_DIR}
+        _distclean "$@"
         ;;
     *)
-        echo "Invalid command: ${COMMAND}" 1>&2
-        exit 1
+        _invalid_command ${COMMAND}
+        ;;
 esac
